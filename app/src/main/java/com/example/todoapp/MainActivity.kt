@@ -1,5 +1,6 @@
 package com.example.todoapp
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +20,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -26,6 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.todoapp.ui.theme.TodoappTheme
 import com.example.todoapp.NoteDetail
 import com.example.todoapp.NoteItem
@@ -34,16 +40,41 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MainScreen()
-
-
+            MyApp()
 
         }
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MyApp() {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = "main") {
+        // Pantalla principal
+        composable("main") {
+            MainScreen(navController)
+        }
+
+        // Pantalla de detalle con argumentos
+        composable(
+            route = "detail/{title}/{description}/{imageUri}"
+        ) { backStackEntry ->
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            val description = backStackEntry.arguments?.getString("description") ?: ""
+            val imageUri = backStackEntry.arguments?.getString("imageUri")
+                ?.takeUnless { it == "null" }
+
+            NoteDetailScreen(title, description, imageUri)
+        }
+    }
+}
+
+
+@Composable
+fun MainScreen(navController: NavController) {
+
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
 
@@ -68,7 +99,7 @@ fun MainScreen() {
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { /* Acción para agregar nota */ }) {
+            Button(onClick = { /* accion para agregar nota */ }) {
                 Text("Agregar")
             }
         }
@@ -101,7 +132,17 @@ fun MainScreen() {
                         (selectedFilter == "Tasks" && note.first.contains("Tarea")))
                         && note.first.contains(searchQuery, ignoreCase = true)
             }) { note ->
-                NoteItem(note.first, note.second, note.third)
+                NoteItem(
+                    title = note.first,
+                    description = note.second,
+                    imageUri = note.third,
+                    onClick = {
+                        val titleEncoded = Uri.encode(note.first)
+                        val descEncoded = Uri.encode(note.second)
+                        val imgEncoded = note.third?.let { Uri.encode(it) } ?: "null"
+                        navController.navigate("detail/$titleEncoded/$descEncoded/$imgEncoded")
+                    }
+                )
             }
         }
     }
