@@ -1,17 +1,18 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.example.todoapp.ui.theme
+package com.example.todoapp
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+
 
 @Composable
 fun NotesApp() {
@@ -46,7 +47,7 @@ fun NotesListScreen() {
             ) {
                 Text(
                     text = "Mis Notas",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.headlineLarge
                 )
                 Spacer(Modifier.height(8.dp))
                 NoteItem(title = "Título", description = "Descripción breve de la nota")
@@ -57,7 +58,13 @@ fun NotesListScreen() {
 }
 
 @Composable
-fun NoteItem(title: String, description: String) {
+fun NoteItem(
+    title: String,
+    description: String,
+    images: List<Uri> = emptyList(),
+    videos: List<Uri> = emptyList(),
+    audios: List<Uri> = emptyList()
+    ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -69,6 +76,26 @@ fun NoteItem(title: String, description: String) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(4.dp))
             Text(description, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(8.dp))
+
+            images.forEach { uri ->
+                AsyncImage(
+                    model = uri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .padding(vertical = 4.dp)
+                )
+            }
+
+            videos.forEach { uri ->
+                Text("Video adjunto: ${uri.lastPathSegment}")
+            }
+
+            audios.forEach { uri ->
+                Text("Audio adjunto: ${uri.lastPathSegment}")
+            }
         }
     }
 }
