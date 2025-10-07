@@ -93,7 +93,7 @@ fun NoteDetail(
             Spacer(modifier = Modifier.width(16.dp))
 
             Button(onClick = onAddClick, modifier = Modifier.weight(1f)) {
-                Text("Agregar")
+                Text("Guardar")
             }
         }
     }
