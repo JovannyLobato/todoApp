@@ -51,21 +51,26 @@ fun MyApp() {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "main") {
+
         // Pantalla principal
         composable("main") {
             MainScreen(navController)
         }
 
-        // Pantalla de detalle con argumentos
+        // Pantalla para agregar una nota
+        composable("add") {
+            AddNote(navController)
+        }
+
+        // Pantalla de detalle
         composable(
             route = "detail/{title}/{description}/{imageUri}"
         ) { backStackEntry ->
             val title = backStackEntry.arguments?.getString("title") ?: ""
             val description = backStackEntry.arguments?.getString("description") ?: ""
-            val imageUri = backStackEntry.arguments?.getString("imageUri")
-                ?.takeUnless { it == "null" }
+            val imageUri = backStackEntry.arguments?.getString("imageUri") ?: ""
+            //NoteDetail(title, description, Uri.parse(imageUri))
 
-            NoteDetailScreen(title, description, imageUri)
         }
     }
 }
@@ -99,7 +104,7 @@ fun MainScreen(navController: NavController) {
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { /* accion para agregar nota */ }) {
+            Button(onClick = { navController.navigate("add") }) {
                 Text("Agregar")
             }
         }
@@ -147,9 +152,6 @@ fun MainScreen(navController: NavController) {
         }
     }
 }
-
-
-
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {

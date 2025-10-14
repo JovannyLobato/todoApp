@@ -8,7 +8,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
+
+@Composable
+fun AddNote(navController: NavController) {
+    AddNoteScreen(
+        onAddNote = { title, description, imageUri ->
+            // Aquí podrías guardar la nota en una base de datos o lista global
+            // Luego regresa a la pantalla principal
+            navController.popBackStack()
+        },
+        onCancel = {
+            // Simplemente regresar a la pantalla principal sin guardar
+            navController.popBackStack()
+        }
+    )
+}
 
 @Composable
 fun AddNoteScreen(
@@ -19,7 +35,6 @@ fun AddNoteScreen(
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<String?>(null) }
 
-    // Launcher para seleccionar imagen desde la galería
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         imageUri = uri.toString()
     }
@@ -43,7 +58,7 @@ fun AddNoteScreen(
             imageUri = null
         },
         onAddMediaClick = {
-            launcher.launch("image/*") // Permite seleccionar imágenes
+            launcher.launch("image/*")
         }
     )
 }
@@ -112,9 +127,7 @@ fun NoteDetail(
 @Composable
 fun AddNotePreview() {
     AddNoteScreen(
-        onAddNote = { title, description, imageUri ->
-            println("Nota agregada: $title - $description - $imageUri")
-        },
-        onCancel = { println("Agregar nota cancelado") }
+        onAddNote = { _, _, _ -> },
+        onCancel = {}
     )
 }
