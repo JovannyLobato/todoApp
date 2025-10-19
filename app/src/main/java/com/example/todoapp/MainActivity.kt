@@ -20,21 +20,23 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.todoapp.ui.theme.TodoappTheme
-import com.example.todoapp.NoteDetail
-import com.example.todoapp.NoteItem
+import com.example.todoapp.*
+import com.example.todoapp.viewmodel.NoteViewModel
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,21 +80,19 @@ fun MyApp() {
 
 @Composable
 fun MainScreen(navController: NavController) {
-
+    val context = LocalContext.current.applicationContext as TodoApplication
+    val viewModel = remember { NoteViewModel(context.repository) }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
 
-    val notes = listOf(
-        Triple("Título 1", "Desc 1", null),
-        Triple("Título 2", "Desc 2", null),
-        Triple("Tarea 1", "Desc Tarea", null)
-    )
+    val notes by viewModel.getAllNotes().collectAsState(initial = emptyList())
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)) {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -110,8 +110,6 @@ fun MainScreen(navController: NavController) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // RadioButtons para filtro
         Row {
             listOf("All", "Notes", "Tasks").forEach { option ->
                 Row(
@@ -126,25 +124,24 @@ fun MainScreen(navController: NavController) {
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Lista filtrada
         LazyColumn {
-            items(notes.filter { note ->
-                (selectedFilter == "All" ||
-                        (selectedFilter == "Notes" && !note.first.contains("Tarea")) ||
-                        (selectedFilter == "Tasks" && note.first.contains("Tarea")))
-                        && note.first.contains(searchQuery, ignoreCase = true)
-            }) { note ->
+            items(
+                notes.filter { note ->
+                    (selectedFilter == "All" ||
+                            (selectedFilter == "Notes" && !note.title.contains("Tarea", ignoreCase = true)) ||
+                            (selectedFilter == "Tasks" && note.title.contains("Tarea", ignoreCase = true))) &&
+                            note.title.contains(searchQuery, ignoreCase = true)
+                }
+            ) { note ->
                 NoteItem(
-                    title = note.first,
-                    description = note.second,
-                    imageUri = note.third,
+                    title = note.title,
+                    description = note.description,
+                    imageUri = note.imageUri,
                     onClick = {
-                        val titleEncoded = Uri.encode(note.first)
-                        val descEncoded = Uri.encode(note.second)
-                        val imgEncoded = note.third?.let { Uri.encode(it) } ?: "null"
+                        val titleEncoded = Uri.encode(note.title)
+                        val descEncoded = Uri.encode(note.description)
+                        val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
                         navController.navigate("detail/$titleEncoded/$descEncoded/$imgEncoded")
                     }
                 )
@@ -152,6 +149,7 @@ fun MainScreen(navController: NavController) {
         }
     }
 }
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
@@ -161,10 +159,3 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TodoappTheme {
-        Greeting("Android")
-    }
-}

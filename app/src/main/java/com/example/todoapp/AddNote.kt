@@ -2,7 +2,12 @@ package com.example.todoapp
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -10,22 +15,37 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.example.todoapp.viewmodel.NoteViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
 
 @Composable
 fun AddNote(navController: NavController) {
+    val context = LocalContext.current.applicationContext as TodoApplication
+    val viewModel = remember { NoteViewModel(context.repository) }
+
     AddNoteScreen(
         onAddNote = { title, description, imageUri ->
-            // Aquí podrías guardar la nota en una base de datos o lista global
-            // Luego regresa a la pantalla principal
+            viewModel.addNote(title, description, imageUri)
             navController.popBackStack()
         },
         onCancel = {
-            // Simplemente regresar a la pantalla principal sin guardar
             navController.popBackStack()
         }
     )
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteScreen(
     onAddNote: (title: String, description: String, imageUri: String?) -> Unit,
@@ -36,91 +56,117 @@ fun AddNoteScreen(
     var imageUri by remember { mutableStateOf<String?>(null) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri.toString()
+        imageUri = uri?.toString()
     }
 
-    NoteDetail(
-        title = title,
-        description = description,
-        imageUri = imageUri,
-        onTitleChange = { title = it },
-        onDescriptionChange = { description = it },
-        onAddClick = {
-            onAddNote(title, description, imageUri)
-            title = ""
-            description = ""
-            imageUri = null
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Agregar nota") }
+            )
         },
-        onCancelClick = {
-            onCancel()
-            title = ""
-            description = ""
-            imageUri = null
-        },
-        onAddMediaClick = {
-            launcher.launch("image/*")
+        bottomBar = {
+            BottomAppBar {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    OutlinedButton(onClick = onCancel) {
+                        Text("Cancelar")
+                    }
+                    Button(onClick = { launcher.launch("image/*") }) {
+                        Text("Agregar archivos")
+                    }
+                    Button(onClick = {
+                        onAddNote(title, description, imageUri)
+                        title = ""
+                        description = ""
+                        imageUri = null
+                    }) {
+                        Text("Agregar")
+                    }
+                }
+            }
         }
-    )
-}
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+        ) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Título") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-@Composable
-fun NoteDetail(
-    title: String,
-    description: String,
-    imageUri: String?,
-    onTitleChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
-    onAddClick: () -> Unit,
-    onCancelClick: () -> Unit,
-    onAddMediaClick: () -> Unit
-) {
-    Column(Modifier.padding(16.dp)) {
-        OutlinedTextField(
-            value = title,
-            onValueChange = onTitleChange,
-            label = { Text("Título") },
-            modifier = Modifier.fillMaxWidth()
-        )
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Text("Descripción", style = MaterialTheme.typography.labelLarge)
+            Spacer(modifier = Modifier.height(4.dp))
 
-        OutlinedTextField(
-            value = description,
-            onValueChange = onDescriptionChange,
-            label = { Text("Descripción") },
-            modifier = Modifier.fillMaxWidth()
-        )
+            val scrollState = rememberScrollState()
+            val coroutineScope = rememberCoroutineScope()
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (imageUri != null) {
-            AsyncImage(
-                model = imageUri,
-                contentDescription = null,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .padding(vertical = 4.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            OutlinedButton(onClick = onCancelClick) {
-                Text("Cancelar")
+                    .heightIn(min = 100.dp, max = 300.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, shape = MaterialTheme.shapes.medium)
+                    .padding(8.dp)
+                    .scrollable(state = scrollState, orientation = Orientation.Vertical)
+            ) {
+                BasicTextField(
+                    value = description,
+                    onValueChange = { newText ->
+                        description = newText
+                        // Hacer scroll al final automáticamente al escribir
+                        coroutineScope.launch {
+                            delay(10) // pequeño retardo para asegurar que el texto se actualizó
+                            scrollState.scrollTo(scrollState.maxValue)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState),
+                    textStyle = TextStyle(color = Color.Black),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Default
+                    ),
+                    decorationBox = { innerTextField ->
+                        if (description.isEmpty()) {
+                            Text(
+                                text = "Escribe la descripción aquí...",
+                                style = TextStyle(color = Color.Gray)
+                            )
+                        }
+                        innerTextField()
+                    }
+                )
             }
-            Button(onClick = onAddMediaClick) {
-                Text("Agregar archivos")
-            }
-            Button(onClick = onAddClick) {
-                Text("Agregar")
+
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (imageUri != null) {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .padding(vertical = 4.dp)
+                )
             }
         }
     }
+
 }
 
 @Preview(showBackground = true)
