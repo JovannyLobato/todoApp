@@ -71,7 +71,7 @@ fun MyApp() {
             val title = backStackEntry.arguments?.getString("title") ?: ""
             val description = backStackEntry.arguments?.getString("description") ?: ""
             val imageUri = backStackEntry.arguments?.getString("imageUri") ?: ""
-            //NoteDetail(title, description, Uri.parse(imageUri))
+            // NoteDetail(title, description, Uri.parse(imageUri))
 
         }
     }
@@ -128,13 +128,13 @@ fun MainScreen(navController: NavController) {
         LazyColumn {
             items(
                 notes.filter { note ->
+                    // **CAMBIO A MODIFICAR:** Usar el nuevo campo 'isTask' para filtrar
                     (selectedFilter == "All" ||
-                            (selectedFilter == "Notes" && !note.title.contains("Tarea", ignoreCase = true)) ||
-                            (selectedFilter == "Tasks" && note.title.contains("Tarea", ignoreCase = true))) &&
+                            (selectedFilter == "Notes" && !note.isTask) || // Muestra solo si NO es tarea
+                            (selectedFilter == "Tasks" && note.isTask)) &&  // Muestra solo si ES tarea
                             note.title.contains(searchQuery, ignoreCase = true)
                 }
-            ) { note ->
-                NoteItem(
+            ) { note -> NoteItem(
                     title = note.title,
                     description = note.description,
                     imageUri = note.imageUri,

@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.todoapp.viewmodel.NoteViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.material3.Switch
+import androidx.compose.ui.Alignment
 
 
 @Composable
@@ -34,8 +36,9 @@ fun AddNote(navController: NavController) {
     val viewModel = remember { NoteViewModel(context.repository) }
 
     AddNoteScreen(
-        onAddNote = { title, description, imageUri ->
-            viewModel.addNote(title, description, imageUri)
+        // CAMBIO 1: onAddNote ahora acepta isTask
+        onAddNote = { title, description, imageUri, isTask ->
+            viewModel.addNote(title, description, imageUri, isTask) // Pasar isTask
             navController.popBackStack()
         },
         onCancel = {
@@ -48,12 +51,15 @@ fun AddNote(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteScreen(
-    onAddNote: (title: String, description: String, imageUri: String?) -> Unit,
+    // **CAMBIO:** Nuevo parámetro isTask
+    onAddNote: (title: String, description: String, imageUri: String?, isTask: Boolean) -> Unit,
     onCancel: () -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<String?>(null) }
+    // **CAMBIO A AGREGAR:** Estado para Tarea
+    var isTaskState by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         imageUri = uri?.toString()
@@ -80,10 +86,11 @@ fun AddNoteScreen(
                         Text("Agregar archivos")
                     }
                     Button(onClick = {
-                        onAddNote(title, description, imageUri)
+                        onAddNote(title, description, imageUri, isTaskState)
                         title = ""
                         description = ""
                         imageUri = null
+                        isTaskState = false
                     }) {
                         Text("Agregar")
                     }
@@ -150,6 +157,16 @@ fun AddNoteScreen(
                     }
                 )
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("¿Es una Tarea?", style = MaterialTheme.typography.labelLarge)
+                Switch(
+                    checked = isTaskState,
+                    onCheckedChange = { isTaskState = it }
+                )
+            }
 
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -173,7 +190,7 @@ fun AddNoteScreen(
 @Composable
 fun AddNotePreview() {
     AddNoteScreen(
-        onAddNote = { _, _, _ -> },
+        onAddNote = { _, _, _, _ -> },
         onCancel = {}
     )
 }
