@@ -30,14 +30,23 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
-    fun updateNote(id: Int, newTitle: String, newDescription: String, imageUri: String?) {
+    fun updateNote(
+        id: Int,
+        newTitle: String,
+        newDescription: String,
+        imageUri: String?,
+        isTask: Boolean,
+        dueDateTimestamp: Long?
+    ) {
         viewModelScope.launch {
             repository.insert(
                 Note(
                     id = id,
                     title = newTitle,
                     description = newDescription,
-                    imageUri = imageUri
+                    imageUri = imageUri,
+                    isTask = isTask,
+                    dueDateTimestamp = dueDateTimestamp
                 )
             )
         }

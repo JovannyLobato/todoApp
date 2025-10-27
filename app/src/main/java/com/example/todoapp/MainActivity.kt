@@ -60,27 +60,32 @@ fun MyApp() {
             MainScreen(navController)
         }
 
-        // Pantalla para agregar una nota
-        composable("add") {
-            AddNote(navController)
-        }
-
         composable(
-            route = "detail/{id}/{title}/{description}/{imageUri}"
+            route = "edit/{id}/{title}/{description}/{imageUri}/{isTask}/{dueDateTimestamp}"
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
+
+            val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
             val title = Uri.decode(backStackEntry.arguments?.getString("title") ?: "")
             val description = Uri.decode(backStackEntry.arguments?.getString("description") ?: "")
 
             val imageUriEncoded = backStackEntry.arguments?.getString("imageUri") ?: "null"
             val imageUri = if (imageUriEncoded == "null") null else Uri.decode(imageUriEncoded)
-            NoteDetailScreen(
+
+            val isTaskEncoded = backStackEntry.arguments?.getString("isTask") ?: "false"
+            val isTask = isTaskEncoded.toBoolean()
+
+            val timestampEncoded = backStackEntry.arguments?.getString("dueDateTimestamp") ?: "null"
+            val timestamp = timestampEncoded.toLongOrNull()
+
+            AddEditScreen(
                 navController = navController,
                 viewModel = viewModel,
                 noteId = id,
                 initialTitle = title,
                 initialDescription = description,
-                imageUri = imageUri
+                initialImageUri = imageUri,
+                initialIsTask = isTask,
+                initialDueDateTimestamp = timestamp
             )
         }
     }
@@ -113,7 +118,12 @@ fun MainScreen(navController: NavController) {
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { navController.navigate("add") }) {
+
+            // 💡 CAMBIO 1: Botón "Agregar" navega a la ruta "edit" con ID=0 y valores nulos
+            Button(onClick = {
+                val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
+                navController.navigate(defaultRoute)
+            }) {
                 Text("Agregar")
             }
         }
@@ -134,6 +144,7 @@ fun MainScreen(navController: NavController) {
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
+
         LazyColumn {
             items(
                 notes.filter { note ->
@@ -153,7 +164,10 @@ fun MainScreen(navController: NavController) {
                     val titleEncoded = Uri.encode(note.title)
                     val descEncoded = Uri.encode(note.description)
                     val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
-                    navController.navigate("detail/$id/$titleEncoded/$descEncoded/$imgEncoded")
+                    val isTaskEncoded = note.isTask.toString()
+                    val timestampEncoded = note.dueDateTimestamp?.toString() ?: "null"
+
+                    navController.navigate("edit/$id/$titleEncoded/$descEncoded/$imgEncoded/$isTaskEncoded/$timestampEncoded")
                 }
             )
             }
