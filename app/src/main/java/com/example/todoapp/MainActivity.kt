@@ -51,7 +51,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MyApp() {
     val navController = rememberNavController()
-
+    val context = LocalContext.current.applicationContext as TodoApplication
+    val viewModel = remember { NoteViewModel(context.repository)}
     NavHost(navController = navController, startDestination = "main") {
 
         // Pantalla principal
@@ -64,15 +65,23 @@ fun MyApp() {
             AddNote(navController)
         }
 
-        // Pantalla de detalle
         composable(
-            route = "detail/{title}/{description}/{imageUri}"
+            route = "detail/{id}/{title}/{description}/{imageUri}"
         ) { backStackEntry ->
-            val title = backStackEntry.arguments?.getString("title") ?: ""
-            val description = backStackEntry.arguments?.getString("description") ?: ""
-            val imageUri = backStackEntry.arguments?.getString("imageUri") ?: ""
-            // NoteDetail(title, description, Uri.parse(imageUri))
+            val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
+            val title = Uri.decode(backStackEntry.arguments?.getString("title") ?: "")
+            val description = Uri.decode(backStackEntry.arguments?.getString("description") ?: "")
 
+            val imageUriEncoded = backStackEntry.arguments?.getString("imageUri") ?: "null"
+            val imageUri = if (imageUriEncoded == "null") null else Uri.decode(imageUriEncoded)
+            NoteDetailScreen(
+                navController = navController,
+                viewModel = viewModel,
+                noteId = id,
+                initialTitle = title,
+                initialDescription = description,
+                imageUri = imageUri
+            )
         }
     }
 }
@@ -128,23 +137,25 @@ fun MainScreen(navController: NavController) {
         LazyColumn {
             items(
                 notes.filter { note ->
-                    // **CAMBIO A MODIFICAR:** Usar el nuevo campo 'isTask' para filtrar
                     (selectedFilter == "All" ||
-                            (selectedFilter == "Notes" && !note.isTask) || // Muestra solo si NO es tarea
-                            (selectedFilter == "Tasks" && note.isTask)) &&  // Muestra solo si ES tarea
+                            (selectedFilter == "Notes" && !note.isTask) ||
+                            (selectedFilter == "Tasks" && note.isTask)) &&
                             note.title.contains(searchQuery, ignoreCase = true)
                 }
             ) { note -> NoteItem(
-                    title = note.title,
-                    description = note.description,
-                    imageUri = note.imageUri,
-                    onClick = {
-                        val titleEncoded = Uri.encode(note.title)
-                        val descEncoded = Uri.encode(note.description)
-                        val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
-                        navController.navigate("detail/$titleEncoded/$descEncoded/$imgEncoded")
-                    }
-                )
+                title = note.title,
+                description = note.description,
+                imageUri = note.imageUri,
+                isTask = note.isTask,
+                dueDateTimestamp = note.dueDateTimestamp,
+                onClick = {
+                    val id = note.id
+                    val titleEncoded = Uri.encode(note.title)
+                    val descEncoded = Uri.encode(note.description)
+                    val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
+                    navController.navigate("detail/$id/$titleEncoded/$descEncoded/$imgEncoded")
+                }
+            )
             }
         }
     }

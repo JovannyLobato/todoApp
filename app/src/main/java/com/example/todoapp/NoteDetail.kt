@@ -11,27 +11,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-
+import androidx.navigation.NavController
+import com.example.todoapp.viewmodel.NoteViewModel
 
 @Composable
 fun NoteDetailScreen(
+    navController: NavController,
+    viewModel: NoteViewModel,
+    noteId: Int?,
     initialTitle: String,
     initialDescription: String,
     imageUri: String?
 ) {
-    // Estados recordados para los campos
     var title by remember { mutableStateOf(initialTitle) }
     var description by remember { mutableStateOf(initialDescription) }
 
-    // Llamamos al composable NoteDetail
     NoteDetail(
         title = title,
         description = description,
         imageUri = imageUri,
         onTitleChange = { title = it },
         onDescriptionChange = { description = it },
-        onAddClick = { println("Agregar: $title - $description") },
-        onCancelClick = { println("Cancelar") }
+        onAddClick = {
+            if (noteId != null) {
+                viewModel.updateNote(
+                    id = noteId,
+                    newTitle = title,
+                    newDescription = description,
+                    imageUri = imageUri
+                )
+            }
+            navController.popBackStack()
+        },
+        onCancelClick = {
+            navController.popBackStack()
+        }
     )
 }
 
@@ -99,12 +113,3 @@ fun NoteDetail(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun NoteDetailPreview() {
-    NoteDetailScreen(
-        initialTitle = "Título de ejemplo",
-        initialDescription = "Descripción de ejemplo",
-        imageUri = "https://via.placeholder.com/150"
-    )
-}

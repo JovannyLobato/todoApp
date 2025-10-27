@@ -7,19 +7,41 @@ import com.example.todoapp.data.NoteRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
+
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
-    fun getAllNotes(): Flow<List<Note>> = repository.getAllNotes()
-
-    fun addNote(title: String, description: String, imageUri: String?, isTask: Boolean = false) {
+    fun addNote(
+        title: String,
+        description: String,
+        imageUri: String?,
+        isTask: Boolean,
+        dueDateTimestamp: Long? = null
+    ) {
         viewModelScope.launch {
-            val note = Note(
-                title = title,
-                description = description,
-                imageUri = imageUri,
-                isTask = isTask
+            repository.insert(
+                Note(
+                    title = title,
+                    description = description,
+                    imageUri = imageUri,
+                    isTask = isTask,
+                    dueDateTimestamp = dueDateTimestamp
+                )
             )
-            repository.insert(note)
         }
     }
+
+    fun updateNote(id: Int, newTitle: String, newDescription: String, imageUri: String?) {
+        viewModelScope.launch {
+            repository.insert(
+                Note(
+                    id = id,
+                    title = newTitle,
+                    description = newDescription,
+                    imageUri = imageUri
+                )
+            )
+        }
+    }
+
+    fun getAllNotes(): Flow<List<Note>> = repository.getAllNotes()
 }

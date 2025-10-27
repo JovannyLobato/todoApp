@@ -9,6 +9,6 @@ data class Note(
     val title: String,
     val description: String,
     val imageUri: String?,
-    // **CAMBIO A AGREGAR:** Campo para distinguir entre Nota y Tarea
-    val isTask: Boolean = false // Por defecto es una Nota
+    val isTask: Boolean = false,
+    val dueDateTimestamp: Long? = null
 )

@@ -7,12 +7,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
-fun NoteItem(title: String,
-             description: String,
-             imageUri: String?,
-             onClick: () -> Unit
+fun NoteItem(
+    title: String,
+    description: String,
+    imageUri: String?,
+    isTask: Boolean,
+    dueDateTimestamp: Long?,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -23,6 +28,20 @@ fun NoteItem(title: String,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(Modifier.padding(16.dp)) {
+            if (isTask && dueDateTimestamp != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val date = Date(dueDateTimestamp)
+                val formatter = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+                val formattedDateTime = formatter.format(date)
+
+
+                Text(
+                    text = "Fecha: $formattedDateTime",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
             Text(title, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
             Text(description, style = MaterialTheme.typography.bodyMedium)

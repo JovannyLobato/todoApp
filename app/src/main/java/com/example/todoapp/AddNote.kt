@@ -2,9 +2,6 @@ package com.example.todoapp
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,19 +12,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.example.todoapp.viewmodel.NoteViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.compose.material3.Switch
 import androidx.compose.ui.Alignment
+import java.text.SimpleDateFormat
+import java.util.*
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import android.app.TimePickerDialog
+import android.net.Uri
+import android.content.Intent // Necesario para la bandera de permiso
+import com.example.todoapp.viewmodel.NoteViewModel // Importación asumida
 
 
 @Composable
@@ -36,9 +30,8 @@ fun AddNote(navController: NavController) {
     val viewModel = remember { NoteViewModel(context.repository) }
 
     AddNoteScreen(
-        // CAMBIO 1: onAddNote ahora acepta isTask
-        onAddNote = { title, description, imageUri, isTask ->
-            viewModel.addNote(title, description, imageUri, isTask) // Pasar isTask
+        onAddNote = { title, description, imageUri, isTask, dueDateTimestamp ->
+            viewModel.addNote(title, description, imageUri, isTask, dueDateTimestamp)
             navController.popBackStack()
         },
         onCancel = {
@@ -51,59 +44,68 @@ fun AddNote(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteScreen(
-    // **CAMBIO:** Nuevo parámetro isTask
-    onAddNote: (title: String, description: String, imageUri: String?, isTask: Boolean) -> Unit,
+    onAddNote: (String, String, String?, Boolean, Long?) -> Unit,
     onCancel: () -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<String?>(null) }
-    // **CAMBIO A AGREGAR:** Estado para Tarea
-    var isTaskState by remember { mutableStateOf(false) }
+    var isTask by remember { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri?.toString()
+    // Lógica de Fecha/Hora
+    val calendar = remember { Calendar.getInstance() }
+    var selectedDate by remember { mutableStateOf<Calendar?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+
+    // 💡 CAMBIO APLICADO: Launcher con lógica para persistir permisos de URI
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            imageUri = it.toString() // Guarda la URI como String
+
+            val contentResolver = context.contentResolver
+            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+            // Persistir el permiso de lectura
+            try {
+                contentResolver.takePersistableUriPermission(it, takeFlags)
+            } catch (e: SecurityException) {
+                // En caso de error de seguridad (ej. archivos de otras apps), simplemente continúa
+                e.printStackTrace()
+            }
+        }
+    }
+
+    val showTimePicker = {
+        val listener = TimePickerDialog.OnTimeSetListener { _, hour, minute ->
+            val finalCalendar = selectedDate ?: Calendar.getInstance()
+            finalCalendar.set(Calendar.HOUR_OF_DAY, hour)
+            finalCalendar.set(Calendar.MINUTE, minute)
+            selectedDate = finalCalendar
+        }
+
+        TimePickerDialog(
+            context,
+            listener,
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            false
+        ).show()
     }
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Agregar nota") }
-            )
-        },
-        bottomBar = {
-            BottomAppBar {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    OutlinedButton(onClick = onCancel) {
-                        Text("Cancelar")
-                    }
-                    Button(onClick = { launcher.launch("image/*") }) {
-                        Text("Agregar archivos")
-                    }
-                    Button(onClick = {
-                        onAddNote(title, description, imageUri, isTaskState)
-                        title = ""
-                        description = ""
-                        imageUri = null
-                        isTaskState = false
-                    }) {
-                        Text("Agregar")
-                    }
-                }
-            }
+            TopAppBar(title = { Text("Añadir Nota o Tarea") })
         }
-    ) { innerPadding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(paddingValues)
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding()
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             OutlinedTextField(
                 value = title,
@@ -114,62 +116,27 @@ fun AddNoteScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Descripción", style = MaterialTheme.typography.labelLarge)
-            Spacer(modifier = Modifier.height(4.dp))
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Descripción") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            val scrollState = rememberScrollState()
-            val coroutineScope = rememberCoroutineScope()
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp, max = 300.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, shape = MaterialTheme.shapes.medium)
-                    .padding(8.dp)
-                    .scrollable(state = scrollState, orientation = Orientation.Vertical)
-            ) {
-                BasicTextField(
-                    value = description,
-                    onValueChange = { newText ->
-                        description = newText
-                        // Hacer scroll al final automáticamente al escribir
-                        coroutineScope.launch {
-                            delay(10) // pequeño retardo para asegurar que el texto se actualizó
-                            scrollState.scrollTo(scrollState.maxValue)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(scrollState),
-                    textStyle = TextStyle(color = Color.Black),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Default
-                    ),
-                    decorationBox = { innerTextField ->
-                        if (description.isEmpty()) {
-                            Text(
-                                text = "Escribe la descripción aquí...",
-                                style = TextStyle(color = Color.Gray)
-                            )
-                        }
-                        innerTextField()
-                    }
-                )
-            }
+            // Switch para Tarea (isTask)
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("¿Es una Tarea?", style = MaterialTheme.typography.labelLarge)
+                Text("¿Es una Tarea?")
                 Switch(
-                    checked = isTaskState,
-                    onCheckedChange = { isTaskState = it }
+                    checked = isTask,
+                    onCheckedChange = { isTask = it }
                 )
             }
-
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             if (imageUri != null) {
                 AsyncImage(
@@ -181,16 +148,105 @@ fun AddNoteScreen(
                         .padding(vertical = 4.dp)
                 )
             }
+
+            // Lógica de Fecha y Hora (si es tarea)
+            if (isTask) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider()
+                Text("Fecha y Hora de Tarea", style = MaterialTheme.typography.titleMedium)
+
+                Button(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        selectedDate?.let {
+                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it.time)
+                        } ?: "Seleccionar Fecha"
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(onClick = showTimePicker, modifier = Modifier.fillMaxWidth(), enabled = selectedDate != null) {
+                    Text(
+                        selectedDate?.let {
+                            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it.time)
+                        } ?: "Seleccionar Hora"
+                    )
+                }
+
+                if (selectedDate != null) {
+                    val fullDateTimeFormat = SimpleDateFormat("EEEE, d MMM yyyy, hh:mm a", Locale("es", "ES"))
+                    Text("Recordatorio: ${fullDateTimeFormat.format(selectedDate!!.time)}", style = MaterialTheme.typography.bodySmall)
+                }
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // BOTONES DE ACCIÓN
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                    Text("Cancelar")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Botón para adjuntar archivos
+                Button(onClick = { launcher.launch("image/*") }, modifier = Modifier.weight(1f)) {
+                    Text("Adjuntar")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = {
+                        val timestamp = if (isTask && selectedDate != null) selectedDate!!.timeInMillis else null
+
+                        onAddNote(title, description, imageUri, isTask, timestamp)
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = title.isNotBlank() && description.isNotBlank()
+                ) {
+                    Text(if (isTask) "Guardar Tarea" else "Guardar Nota")
+                }
+            }
         }
     }
 
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatePicker = false
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val tempCal = Calendar.getInstance()
+                            tempCal.timeInMillis = millis
+                            val finalCal = selectedDate ?: Calendar.getInstance()
+                            finalCal.set(tempCal.get(Calendar.YEAR), tempCal.get(Calendar.MONTH), tempCal.get(Calendar.DAY_OF_MONTH))
+                            selectedDate = finalCal
+                        }
+                    }
+                ) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun AddNotePreview() {
     AddNoteScreen(
-        onAddNote = { _, _, _, _ -> },
+        onAddNote = { _, _, _, _, _ -> },
         onCancel = {}
     )
 }
