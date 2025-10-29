@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -114,17 +115,16 @@ fun MainScreen(navController: NavController) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text(text = "Buscar") },
+                label = { Text(text = stringResource(id = R.string.search)) },
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
 
-            // 💡 CAMBIO 1: Botón "Agregar" navega a la ruta "edit" con ID=0 y valores nulos
             Button(onClick = {
                 val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
                 navController.navigate(defaultRoute)
             }) {
-                Text("Agregar")
+                Text(text = stringResource(id = R.string.add_note))
             }
         }
 

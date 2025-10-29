@@ -1,3 +1,20 @@
+<!-- Text(text = stringResource(id = R.string.add_note)) -->
 <resources>
-    <string name="app_name">todoapp</string>
+    <string name="app_name">Todo App</string>
+    <string name="add_note">Add note</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="search">Search</string>
+    <string name="all">All</string>
+    <string name="notes">Notes</string>
+    <string name="tasks">Tasks</string>
+    <string name="tittle">Tittle</string>
+    <string name="description">Description</string>
+    <string name="is_a_taskq">Is a task?</string>
+    <string name="select_an_image">Select an image</string>
+    <string name="save_changes">Save changes</string>
+    <string name="select_date">Select a date</string>
+    <string name="update">Update</string>
+    <string name="change_image">Change image</string>
+    <string name="delete_image">Delete image</string>
 </resources>

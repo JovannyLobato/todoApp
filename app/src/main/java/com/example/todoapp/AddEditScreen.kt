@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.ui.res.stringResource
 import com.example.todoapp.viewmodel.NoteViewModel
 import kotlinx.coroutines.launch
 
@@ -33,7 +34,7 @@ import kotlinx.coroutines.launch
 fun AddEditScreen(
     navController: NavController,
     viewModel: NoteViewModel,
-    noteId: Int, // 0 si es nueva, >0 si es edición
+    noteId: Int,
     initialTitle: String,
     initialDescription: String,
     initialImageUri: String?,
@@ -41,7 +42,7 @@ fun AddEditScreen(
     initialDueDateTimestamp: Long?
 ) {
     AddEditContent(
-        isEditing = noteId > 0, // Determinar si es edición
+        isEditing = noteId > 0,
         viewModel = viewModel,
         navController = navController,
         noteId = noteId,
@@ -57,44 +58,85 @@ fun AddEditScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditContent(
-    isEditing: Boolean, // ID > 0
+    isEditing: Boolean,
     viewModel: NoteViewModel,
     navController: NavController,
-    noteId: Int, // ID de la nota (0 si es nueva)
+    noteId: Int,
     initialTitle: String,
     initialDescription: String,
     initialImageUri: String?,
     initialIsTask: Boolean,
     initialDueDateTimestamp: Long?
 ) {
-    // 1. ESTADOS
-    var title by remember { mutableStateOf(initialTitle) }
-    var description by remember { mutableStateOf(initialDescription) }
-    var imageUri by remember { mutableStateOf(initialImageUri) }
-    var isTask by remember { mutableStateOf(initialIsTask) }
-    var dueDateTimestamp by remember { mutableStateOf(initialDueDateTimestamp) }
-
-    // Lógica de Fecha/Hora
-    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsState()
     val contextAndroid = LocalContext.current
-    var showDatePicker by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    // Usamos un Calendar mutable para la lógica de selección.
+    var dueDateTimestamp = uiState.dueDateTimestamp
+    var title = uiState.title
+    var isTask = uiState.isTask
+    var description = uiState.description
+    var imageUri = uiState.imageUri
+    var showDatePicker = uiState.showDatePicker
+
+    LaunchedEffect(noteId) {
+        viewModel.loadNoteData(
+            initialTitle,
+            initialDescription,
+            initialImageUri,
+            initialIsTask,
+            initialDueDateTimestamp
+        )
+    }
+
+    Column {
+        TextField(
+            value = uiState.title,
+            onValueChange = viewModel::onTitleChange,
+            label = { Text(text = stringResource(id = R.string.tittle) ) }
+        )
+
+        TextField(
+            value = uiState.description,
+            onValueChange = viewModel::onDescriptionChange,
+            label = { Text(text = stringResource(id = R.string.description)) }
+        )
+
+        Switch(
+            checked = uiState.isTask,
+            onCheckedChange = viewModel::onIsTaskChange
+        )
+
+        Button(onClick = { viewModel.setShowDatePicker(true) }) {
+            Text(text = stringResource(id = R.string.select_date))
+        }
+
+        if (uiState.showDatePicker) {
+            // Aquí usas el DatePickerDialog y actualizas con viewModel.onDueDateChange()
+        }
+
+        Button(onClick = {
+            viewModel.saveNote(noteId, isEditing)
+            navController.popBackStack()
+        }) {
+            Text(if (isEditing) stringResource(id = R.string.update)
+            else stringResource(id = R.string.save))
+        }
+    }
+
     val tempDateCalendar = remember {
         Calendar.getInstance().apply {
             initialDueDateTimestamp?.let { timeInMillis = it }
         }
     }
 
-    // 2. LAUNCHER DE IMAGEN (Con persistencia de permisos)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            imageUri = it.toString()
+            uiState.imageUri = it.toString()
             val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
             try {
-                // Persistir el permiso de lectura
                 contextAndroid.contentResolver.takePersistableUriPermission(it, flag)
             } catch (e: SecurityException) {
                 e.printStackTrace()
@@ -102,11 +144,9 @@ fun AddEditContent(
         }
     }
 
-    // 3. DIÁLOGOS DE HORA
     val timePickerDialog = TimePickerDialog(
         contextAndroid,
         { _, hour: Int, minute: Int ->
-            // Actualiza la hora en el Calendar temporal y en el Timestamp
             tempDateCalendar.set(Calendar.HOUR_OF_DAY, hour)
             tempDateCalendar.set(Calendar.MINUTE, minute)
             tempDateCalendar.set(Calendar.SECOND, 0)
@@ -115,23 +155,20 @@ fun AddEditContent(
         },
         tempDateCalendar.get(Calendar.HOUR_OF_DAY),
         tempDateCalendar.get(Calendar.MINUTE),
-        true // 24-hour format
+        true
     )
 
-    // 4. LÓGICA DE GUARDADO/ACTUALIZACIÓN
     val onSave: () -> Unit = {
         if (title.isNotBlank()) {
             scope.launch {
                 val finalTimestamp = if (isTask) dueDateTimestamp else null
 
-                // Determinar si llamar a addNote (creación) o updateNote (edición)
                 if (isEditing) {
                     viewModel.updateNote(noteId, title, description, imageUri, isTask, finalTimestamp)
                 } else {
-                    // Si es nueva, Room inserta automáticamente un nuevo ID (ID=0)
                     viewModel.addNote(title, description, imageUri, isTask, finalTimestamp)
                 }
-                navController.popBackStack() // Navegar de vuelta
+                navController.popBackStack()
             }
         }
     }
@@ -140,6 +177,7 @@ fun AddEditContent(
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editar Elemento" else "Añadir Elemento") },
+                // title = {},
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
@@ -156,11 +194,11 @@ fun AddEditContent(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // CAMPO DE TÍTULO
+            // CAMPO DE titulo
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Título") },
+                label = { Text(text = stringResource(id = R.string.tittle)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -171,7 +209,7 @@ fun AddEditContent(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Descripción") },
+                label = { Text(text = stringResource(id = R.string.description)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 100.dp)
@@ -179,13 +217,13 @@ fun AddEditContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // INTERRUPTOR DE TAREA
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("¿Es una Tarea?", style = MaterialTheme.typography.titleMedium)
+                Text(text = stringResource(id = R.string.is_a_taskq), style = MaterialTheme.typography.titleMedium)
                 Switch(
                     checked = isTask,
                     onCheckedChange = {
@@ -196,7 +234,6 @@ fun AddEditContent(
                 )
             }
 
-            // SELECTOR DE FECHA Y HORA (solo visible si es tarea)
             if (isTask) {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -222,7 +259,7 @@ fun AddEditContent(
                 onClick = { imagePickerLauncher.launch("image/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (imageUri != null) "Cambiar Imagen" else "Seleccionar Imagen")
+                Text(if (imageUri != null) R.string.change_image else R.string.select_an_image)
             }
 
             if (imageUri != null) {
@@ -231,12 +268,12 @@ fun AddEditContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Botón para eliminar la imagen
+                    // Boton para eliminar la imagen
                     TextButton(onClick = { imageUri = null }) {
-                        Text("Eliminar Imagen", color = MaterialTheme.colorScheme.error)
+                        Text("Delete image", color = MaterialTheme.colorScheme.error)
                     }
                 }
-
+                // me quede aqui
                 // VISUALIZACIÓN DE IMAGEN
                 AsyncImage(
                     model = Uri.parse(imageUri),
@@ -250,10 +287,8 @@ fun AddEditContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // BOTÓN GUARDAR (Llama a onSave)
             Button(
                 onClick = onSave,
-                // Debe tener título y, si es tarea, debe tener fecha
                 enabled = title.isNotBlank() && (!isTask || dueDateTimestamp != null),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -262,7 +297,6 @@ fun AddEditContent(
         }
     }
 
-    // 5. DatePickerDialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dueDateTimestamp ?: System.currentTimeMillis()
