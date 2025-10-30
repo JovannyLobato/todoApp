@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Aplicación de Tareas</string>
+    <string name="add_note">Agregar nota</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="search">Buscar</string>
+    <string name="all">Todo</string>
+    <string name="notes">Notas</string>
+    <string name="tasks">Tareas</string>
+    <string name="tittle">Título</string>
+    <string name="description">Descripción</string>
+    <string name="is_a_taskq">¿Es una tarea?</string>
+    <string name="select_an_image">Seleccionar una imagen</string>
+    <string name="save_changes">Guardar cambios</string>
+    <string name="select_date">Seleccionar fecha</string>
+    <string name="update">Actualizar</string>
+    <string name="change_image">Cambiar imagen</string>
+    <string name="delete_image">Eliminar imagen</string>
+    <string name="select_a_date_and_time_for_the_task">Selecciona una fecha y hora para la tarea</string>
+    <string name="next_hour">Siguiente (hora)</string>
+</resources>

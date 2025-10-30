@@ -17,4 +17,6 @@
     <string name="update">Update</string>
     <string name="change_image">Change image</string>
     <string name="delete_image">Delete image</string>
+    <string name="select_a_date_and_time_for_the_task">Select a date and time for the task</string>
+    <string name="next_hour">Next (hour)</string>"
 </resources>

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.res.stringResource
 import com.example.todoapp.viewmodel.NoteViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 
 
 @Composable
@@ -72,13 +73,14 @@ fun AddEditContent(
     val contextAndroid = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    /*
     var dueDateTimestamp = uiState.dueDateTimestamp
     var title = uiState.title
     var isTask = uiState.isTask
     var description = uiState.description
     var imageUri = uiState.imageUri
     var showDatePicker = uiState.showDatePicker
-
+    */
     LaunchedEffect(noteId) {
         viewModel.loadNoteData(
             initialTitle,
@@ -151,7 +153,7 @@ fun AddEditContent(
             tempDateCalendar.set(Calendar.MINUTE, minute)
             tempDateCalendar.set(Calendar.SECOND, 0)
             tempDateCalendar.set(Calendar.MILLISECOND, 0)
-            dueDateTimestamp = tempDateCalendar.timeInMillis
+            viewModel.onDueDateChange(tempDateCalendar.timeInMillis)
         },
         tempDateCalendar.get(Calendar.HOUR_OF_DAY),
         tempDateCalendar.get(Calendar.MINUTE),
@@ -159,14 +161,15 @@ fun AddEditContent(
     )
 
     val onSave: () -> Unit = {
-        if (title.isNotBlank()) {
+        if (uiState.title.isNotBlank()) {
             scope.launch {
-                val finalTimestamp = if (isTask) dueDateTimestamp else null
+                val finalTimestamp = if (uiState.isTask) uiState.dueDateTimestamp else null
 
                 if (isEditing) {
-                    viewModel.updateNote(noteId, title, description, imageUri, isTask, finalTimestamp)
+                    viewModel.updateNote(noteId, uiState.title, uiState.description,
+                        uiState.imageUri, uiState.isTask, finalTimestamp)
                 } else {
-                    viewModel.addNote(title, description, imageUri, isTask, finalTimestamp)
+                    viewModel.addNote(uiState.title, uiState.description, uiState.imageUri, uiState.isTask, finalTimestamp)
                 }
                 navController.popBackStack()
             }
@@ -196,8 +199,8 @@ fun AddEditContent(
         ) {
             // CAMPO DE titulo
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
+                value = uiState.title,
+                onValueChange = { viewModel.onTitleChange(it) },
                 label = { Text(text = stringResource(id = R.string.tittle)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -207,8 +210,8 @@ fun AddEditContent(
 
             // CAMPO DE DESCRIPCIÓN
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = uiState.description,
+                onValueChange = { viewModel.onDescriptionChange(it) },
                 label = { Text(text = stringResource(id = R.string.description)) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -225,28 +228,29 @@ fun AddEditContent(
             ) {
                 Text(text = stringResource(id = R.string.is_a_taskq), style = MaterialTheme.typography.titleMedium)
                 Switch(
-                    checked = isTask,
+                    checked = uiState.isTask,
                     onCheckedChange = {
-                        isTask = it
+                        viewModel.onIsTaskChange(it)
                         // Limpiar el timestamp si se desactiva Tarea
-                        if (!it) dueDateTimestamp = null
+                        if (!it) viewModel.onDueDateChange(null)
+
                     }
                 )
             }
 
-            if (isTask) {
+            if (uiState.isTask) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedButton(
-                    onClick = { showDatePicker = true },
+                    onClick = { viewModel.setShowDatePicker(true) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.DateRange, contentDescription = "Fecha de Vencimiento")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = formatTimestamp(dueDateTimestamp),
-                            color = if (dueDateTimestamp == null) MaterialTheme.colorScheme.error else LocalContentColor.current
+                            text = formatTimestamp(uiState.dueDateTimestamp),
+                            color = if (uiState.dueDateTimestamp == null) MaterialTheme.colorScheme.error else LocalContentColor.current
                         )
                     }
                 }
@@ -259,24 +263,30 @@ fun AddEditContent(
                 onClick = { imagePickerLauncher.launch("image/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (imageUri != null) R.string.change_image else R.string.select_an_image)
+                Text (stringResource(
+                        if (uiState.imageUri != null)
+                            R.string.change_image
+                        else
+                            R.string.select_an_image
+                    )
+                )
             }
 
-            if (imageUri != null) {
+            if (uiState.imageUri != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Boton para eliminar la imagen
-                    TextButton(onClick = { imageUri = null }) {
+                    TextButton(onClick = { uiState.imageUri = null }) {
                         Text("Delete image", color = MaterialTheme.colorScheme.error)
                     }
                 }
                 // me quede aqui
                 // VISUALIZACIÓN DE IMAGEN
                 AsyncImage(
-                    model = Uri.parse(imageUri),
+                    model = Uri.parse(uiState.imageUri),
                     contentDescription = "Imagen seleccionada",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -289,24 +299,24 @@ fun AddEditContent(
 
             Button(
                 onClick = onSave,
-                enabled = title.isNotBlank() && (!isTask || dueDateTimestamp != null),
+                enabled = uiState.title.isNotBlank() && (!uiState.isTask || uiState.dueDateTimestamp != null),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (noteId == 0) "Crear ${if (isTask) "Tarea" else "Nota"}" else "Guardar Cambios")
+                Text(if (noteId == 0) "Crear ${if (uiState.isTask) "Tarea" else "Nota"}" else "Guardar Cambios")
             }
         }
     }
 
-    if (showDatePicker) {
+    if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dueDateTimestamp ?: System.currentTimeMillis()
+            initialSelectedDateMillis = uiState.dueDateTimestamp ?: System.currentTimeMillis()
         )
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { viewModel.setShowDatePicker(false) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showDatePicker = false
+                        viewModel.setShowDatePicker(false)
                         datePickerState.selectedDateMillis?.let { millis ->
 
                             val tempCal = Calendar.getInstance().apply { timeInMillis = millis }
@@ -316,10 +326,11 @@ fun AddEditContent(
                             timePickerDialog.show()
                         }
                     }
-                ) { Text("Siguiente (Hora)") }
+                ) { Text(text = stringResource(id = R.string.next_hour)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { viewModel.setShowDatePicker(false) }) { Text(
+                    text = stringResource(id = R.string.cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -327,11 +338,12 @@ fun AddEditContent(
     }
 }
 
+@Composable
 fun formatTimestamp(timestamp: Long?): String {
     return if (timestamp != null && timestamp > 0) {
         val date = Date(timestamp)
         SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(date)
     } else {
-        "Seleccionar Fecha y Hora de Vencimiento"
+        stringResource(id = R.string.select_a_date_and_time_for_the_task )
     }
 }
