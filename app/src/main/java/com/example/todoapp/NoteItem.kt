@@ -22,10 +22,10 @@ fun NoteItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable { onClick() },
+            .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick
     ) {
         Column(Modifier.padding(16.dp)) {
             if (isTask && dueDateTimestamp != null) {

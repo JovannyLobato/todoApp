@@ -114,7 +114,6 @@ fun AddEditContent(
         }
 
         if (uiState.showDatePicker) {
-            // Aquí usas el DatePickerDialog y actualizas con viewModel.onDueDateChange()
         }
 
         Button(onClick = {

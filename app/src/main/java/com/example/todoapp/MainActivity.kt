@@ -4,7 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,7 +18,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,54 +33,71 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.todoapp.*
+import com.example.todoapp.data.Note
+import com.example.todoapp.ui.theme.TodoappTheme
 import com.example.todoapp.viewmodel.NoteViewModel
 
+
 class MainActivity : ComponentActivity() {
+
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MyApp()
 
+        setContent {
+            TodoappTheme {
+                // Calcula el tamaño de la ventana
+                val windowSize = calculateWindowSizeClass(this)
+
+                Surface {
+                    MyApp(windowSizeClass = windowSize.widthSizeClass)
+                }
+            }
         }
     }
 }
 
-@Composable
-fun MyApp() {
-    val navController = rememberNavController()
-    val context = LocalContext.current.applicationContext as TodoApplication
-    val viewModel = remember { NoteViewModel(context.repository)}
-    NavHost(navController = navController, startDestination = "main") {
 
-        // Pantalla principal
+
+@Composable
+fun MyApp(windowSizeClass: WindowWidthSizeClass) {
+    val context = LocalContext.current.applicationContext as TodoApplication
+    val viewModel = remember { NoteViewModel(context.repository) }
+    val navController = rememberNavController()
+
+    when (windowSizeClass) {
+        WindowWidthSizeClass.Compact -> TodoAppCompact(navController, viewModel)
+        WindowWidthSizeClass.Medium -> TodoAppMedium(navController, viewModel)
+        WindowWidthSizeClass.Expanded -> TodoAppExpanded(navController, viewModel)
+    }
+}
+
+@Composable
+fun TodoAppCompact(navController: NavHostController, viewModel: NoteViewModel) {
+    NavHost(
+        navController = navController,
+        startDestination = "main"
+    ) {
         composable("main") {
-            MainScreen(navController)
+            MainScreen(navController, viewModel, isCompact = true)
         }
 
         composable(
             route = "edit/{id}/{title}/{description}/{imageUri}/{isTask}/{dueDateTimestamp}"
         ) { backStackEntry ->
-
             val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
             val title = Uri.decode(backStackEntry.arguments?.getString("title") ?: "")
             val description = Uri.decode(backStackEntry.arguments?.getString("description") ?: "")
-
             val imageUriEncoded = backStackEntry.arguments?.getString("imageUri") ?: "null"
             val imageUri = if (imageUriEncoded == "null") null else Uri.decode(imageUriEncoded)
-
-            val isTaskEncoded = backStackEntry.arguments?.getString("isTask") ?: "false"
-            val isTask = isTaskEncoded.toBoolean()
-
-            val timestampEncoded = backStackEntry.arguments?.getString("dueDateTimestamp") ?: "null"
-            val timestamp = timestampEncoded.toLongOrNull()
+            val isTask = backStackEntry.arguments?.getString("isTask")?.toBoolean() ?: false
+            val dueDateTimestamp = backStackEntry.arguments?.getString("dueDateTimestamp")?.toLongOrNull()
 
             AddEditScreen(
                 navController = navController,
@@ -86,7 +107,7 @@ fun MyApp() {
                 initialDescription = description,
                 initialImageUri = imageUri,
                 initialIsTask = isTask,
-                initialDueDateTimestamp = timestamp
+                initialDueDateTimestamp = dueDateTimestamp
             )
         }
     }
@@ -94,15 +115,72 @@ fun MyApp() {
 
 
 @Composable
-fun MainScreen(navController: NavController) {
-    val context = LocalContext.current.applicationContext as TodoApplication
-    val viewModel = remember { NoteViewModel(context.repository) }
+fun TodoAppMedium(navController: NavHostController, viewModel: NoteViewModel) {
+    // Estado compartido entre ambas pantallas
+    var selectedNote by remember { mutableStateOf<Note?>(null) }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.weight(1f)) {
+            // Pasamos un callback que actualiza la nota seleccionada
+            MainScreen(
+                navController = navController,
+                viewModel = viewModel,
+                isCompact = false,
+                onNoteSelected = { note ->
+                    selectedNote = note
+                }
+            )
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+            if (selectedNote != null) {
+                AddEditScreen(
+                    navController = navController,
+                    viewModel = viewModel,
+                    noteId = selectedNote!!.id,
+                    initialTitle = selectedNote!!.title,
+                    initialDescription = selectedNote!!.description,
+                    initialImageUri = selectedNote!!.imageUri,
+                    initialIsTask = selectedNote!!.isTask,
+                    initialDueDateTimestamp = selectedNote!!.dueDateTimestamp
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Selecciona una nota para editarla")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TodoAppExpanded(navController: NavHostController, viewModel: NoteViewModel) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.weight(0.4f)) {
+            MainScreen(navController, viewModel, isCompact = false)
+        }
+        Box(modifier = Modifier.weight(0.6f)) {
+            AddEditScreen(navController, viewModel, 0, "", "", null, false, null)
+        }
+    }
+}
+
+@Composable
+fun MainScreen(
+    navController: NavController,
+    viewModel: NoteViewModel,
+    isCompact: Boolean,
+    onNoteSelected: (Note) -> Unit = {}) {
+    // val context = LocalContext.current.applicationContext as TodoApplication
+    // val viewModel = remember { NoteViewModel(context.repository) }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
 
     val notes by viewModel.getAllNotes().collectAsState(initial = emptyList())
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -160,14 +238,20 @@ fun MainScreen(navController: NavController) {
                 isTask = note.isTask,
                 dueDateTimestamp = note.dueDateTimestamp,
                 onClick = {
-                    val id = note.id
-                    val titleEncoded = Uri.encode(note.title)
-                    val descEncoded = Uri.encode(note.description)
-                    val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
-                    val isTaskEncoded = note.isTask.toString()
-                    val timestampEncoded = note.dueDateTimestamp?.toString() ?: "null"
+                    if (isCompact){
+                        val id = note.id
+                        val titleEncoded = Uri.encode(note.title)
+                        val descEncoded = Uri.encode(note.description)
+                        val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
+                        val isTaskEncoded = note.isTask.toString()
+                        val timestampEncoded = note.dueDateTimestamp?.toString() ?: "null"
+                        navController.navigate("edit/$id/$titleEncoded/$descEncoded/$imgEncoded/$isTaskEncoded/$timestampEncoded")
+                    }else{
+                        onNoteSelected(note)
+                    }
 
-                    navController.navigate("edit/$id/$titleEncoded/$descEncoded/$imgEncoded/$isTaskEncoded/$timestampEncoded")
+
+
                 }
             )
             }
@@ -175,12 +259,4 @@ fun MainScreen(navController: NavController) {
     }
 }
 
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
 
