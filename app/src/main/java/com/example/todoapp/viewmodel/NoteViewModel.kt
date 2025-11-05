@@ -48,7 +48,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         _uiState.value = _uiState.value.copy(showDatePicker = show)
     }
 
-    // 🔹 Cargar datos iniciales al editar
+    // Cargar datos iniciales al editar
     fun loadNoteData(
         title: String,
         description: String,
@@ -65,7 +65,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         )
     }
 
-    // 🔹 Guardar / actualizar nota
+    // Guardar / actualizar nota
     fun saveNote(id: Int?, isEditing: Boolean) {
         viewModelScope.launch {
             val note = Note(

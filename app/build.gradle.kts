@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
     id("kotlin-kapt")
 }
 
@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.compose.material3:material3-window-size-class:1.2.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation(libs.androidx.core.ktx)

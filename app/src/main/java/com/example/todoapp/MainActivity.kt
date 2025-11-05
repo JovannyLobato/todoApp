@@ -21,7 +21,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +41,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.todoapp.data.Note
 import com.example.todoapp.ui.theme.TodoappTheme
 import com.example.todoapp.viewmodel.NoteViewModel
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 
 
 class MainActivity : ComponentActivity() {
