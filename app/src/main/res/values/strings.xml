@@ -18,5 +18,13 @@
     <string name="change_image">Change image</string>
     <string name="delete_image">Delete image</string>
     <string name="select_a_date_and_time_for_the_task">Select a date and time for the task</string>
-    <string name="next_hour">Next (hour)</string>"
+    <string name="next_hour">Next (hour)</string>
+
+    <string name="image_selected">Image selected</string>
+    <string name="create">Create</string>
+    <string name="task">task</string>
+    <string name="note">note</string>
+    <string name="select_a_note_for_edit">Select a note for edit</string>
+
+
 </resources>

@@ -150,7 +150,7 @@ fun TodoAppMedium(navController: NavHostController, viewModel: NoteViewModel) {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Selecciona una nota para editarla")
+                    Text(stringResource(id = R.string.select_a_note_for_edit))
                 }
             }
         }
@@ -177,9 +177,9 @@ fun MainScreen(
     onNoteSelected: (Note) -> Unit = {}) {
     // val context = LocalContext.current.applicationContext as TodoApplication
     // val viewModel = remember { NoteViewModel(context.repository) }
-
+    val allString = stringResource(id = R.string.all)
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("All") }
+    var selectedFilter by remember { mutableStateOf( allString) }
 
     val notes by viewModel.getAllNotes().collectAsState(initial = emptyList())
     Column(
@@ -209,7 +209,8 @@ fun MainScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
         Row {
-            listOf("All", "Notes", "Tasks").forEach { option ->
+            listOf(stringResource(id = R.string.all), stringResource(id = R.string.notes),
+                stringResource(id = R.string.tasks)).forEach { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(end = 16.dp)
@@ -223,13 +224,15 @@ fun MainScreen(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-
+        val all =  stringResource(id = R.string.all)
+        val notesString = stringResource(id = R.string.notes)
+        val tasks = stringResource(id = R.string.tasks)
         LazyColumn {
             items(
                 notes.filter { note ->
-                    (selectedFilter == "All" ||
-                            (selectedFilter == "Notes" && !note.isTask) ||
-                            (selectedFilter == "Tasks" && note.isTask)) &&
+                    (selectedFilter == all  ||
+                            (selectedFilter == notesString  && !note.isTask) ||
+                            (selectedFilter == tasks  && note.isTask)) &&
                             note.title.contains(searchQuery, ignoreCase = true)
                 }
             ) { note -> NoteItem(

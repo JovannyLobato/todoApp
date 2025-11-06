@@ -18,4 +18,11 @@
     <string name="delete_image">Eliminar imagen</string>
     <string name="select_a_date_and_time_for_the_task">Selecciona una fecha y hora para la tarea</string>
     <string name="next_hour">Siguiente (hora)</string>
+    <string name="image_selected">Imagen seleccionada</string>
+
+    <string name="create">Crear</string>
+    <string name="task">tarea</string>
+    <string name="note">nota</string>
+    <string name="select_a_note_for_edit">Selecciona una nota para editar</string>
+
 </resources>

@@ -277,16 +277,15 @@ fun AddEditContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Boton para eliminar la imagen
                     TextButton(onClick = { uiState.imageUri = null }) {
-                        Text("Delete image", color = MaterialTheme.colorScheme.error)
+                        Text(text= stringResource(id = R.string.delete_image), color = MaterialTheme.colorScheme.error)
                     }
                 }
                 // me quede aqui
                 // VISUALIZACIÓN DE IMAGEN
                 AsyncImage(
                     model = Uri.parse(uiState.imageUri),
-                    contentDescription = "Imagen seleccionada",
+                    contentDescription = stringResource(id = R.string.image_selected),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
@@ -301,7 +300,10 @@ fun AddEditContent(
                 enabled = uiState.title.isNotBlank() && (!uiState.isTask || uiState.dueDateTimestamp != null),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (noteId == 0) "Crear ${if (uiState.isTask) "Tarea" else "Nota"}" else "Guardar Cambios")
+                Text(if (noteId == 0) stringResource(id = R.string.create) +
+                        " ${if (uiState.isTask) stringResource(id = R.string.task) 
+                        else stringResource(id = R.string.note)}"
+                else stringResource(id = R.string.save_changes))
             }
         }
     }
@@ -335,6 +337,9 @@ fun AddEditContent(
             DatePicker(state = datePickerState)
         }
     }
+
+    // Agregar coil y exoplayer para foto y video
+    // dependencias
 }
 
 @Composable
