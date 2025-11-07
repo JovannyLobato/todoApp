@@ -140,6 +140,16 @@ fun TodoAppMedium(navController: NavHostController, viewModel: NoteViewModel) {
                 isCompact = false,
                 onNoteSelected = { note ->
                     selectedNote = note
+                },
+                onAddNote = {
+                    selectedNote = Note(
+                        id = 0,
+                        title = "",
+                        description = "",
+                        imageUri = null,
+                        isTask = false,
+                        dueDateTimestamp = null
+                    )
                 }
             )
         }
@@ -185,7 +195,9 @@ fun MainScreen(
     navController: NavController,
     viewModel: NoteViewModel,
     isCompact: Boolean,
-    onNoteSelected: (Note) -> Unit = {}) {
+    onNoteSelected: (Note) -> Unit = {},
+    onAddNote: (() -> Unit)? = null
+) {
     // val context = LocalContext.current.applicationContext as TodoApplication
     // val viewModel = remember { NoteViewModel(context.repository) }
     val allString = stringResource(id = R.string.all)
@@ -219,13 +231,19 @@ fun MainScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Button(
                 onClick = {
-                    val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
-                    navController.navigate(defaultRoute)
+                    if (isCompact) {
+                        // En pantallas compact navega a la pantalla de edición
+                        val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
+                        navController.navigate(defaultRoute)
+                    } else {
+                        // En pantallas medianas/grandes, solo limpia el formulario
+                        onAddNote?.invoke()
+                    }
                 },
                 modifier = Modifier
-                    .size(60.dp) // controla el diámetro del círculo
+                    .size(60.dp) // controla el diametro del círculo
                     .padding(8.dp),
-                shape = CircleShape, // hace el botón redondo
+                shape = CircleShape, // hace el boton redondo
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
@@ -238,18 +256,6 @@ fun MainScreen(
                     modifier = Modifier.size(28.dp)
                 )
             }
-            /*
-            Button(onClick = {
-                val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
-                navController.navigate(defaultRoute)
-            },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                Text(text = stringResource(id = R.string.add_note))
-            }
-             */
         }
 
         Spacer(modifier = Modifier.height(16.dp))
