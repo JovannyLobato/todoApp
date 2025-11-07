@@ -6,21 +6,33 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.*
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -30,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -41,8 +54,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.todoapp.data.Note
 import com.example.todoapp.ui.theme.TodoappTheme
 import com.example.todoapp.viewmodel.NoteViewModel
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 
 
 class MainActivity : ComponentActivity() {
@@ -185,26 +196,60 @@ fun MainScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(18.dp)
     ) {
+        Spacer(modifier = Modifier.height(16.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
         ) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text(text = stringResource(id = R.string.search)) },
-                modifier = Modifier.weight(1f)
+                shape = RoundedCornerShape(25.dp),
+                modifier = Modifier
+                    .weight(2f)
+                    .fillMaxHeight()
+                    .heightIn(min = 50.dp),
+                singleLine = true
             )
             Spacer(modifier = Modifier.width(8.dp))
-
+            Button(
+                onClick = {
+                    val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
+                    navController.navigate(defaultRoute)
+                },
+                modifier = Modifier
+                    .size(60.dp) // controla el diámetro del círculo
+                    .padding(8.dp),
+                shape = CircleShape, // hace el botón redondo
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(0.dp) // evita espacio interno extra
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Agregar",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            /*
             Button(onClick = {
                 val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
                 navController.navigate(defaultRoute)
-            }) {
+            },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
                 Text(text = stringResource(id = R.string.add_note))
             }
+             */
         }
 
         Spacer(modifier = Modifier.height(16.dp))
