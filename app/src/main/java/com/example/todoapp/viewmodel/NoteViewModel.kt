@@ -193,12 +193,6 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             _uiState.value.mediaBlocks[index].copy(content = content, description = description)
         _uiState.value = _uiState.value.copy(mediaBlocks = _uiState.value.mediaBlocks)
     }
-    /*
-    fun removeMediaBlock(index: Int) {
-        _uiState.value.mediaBlocks.removeAt(index)
-        _uiState.value = _uiState.value.copy(mediaBlocks = _uiState.value.mediaBlocks)
-    }
-     */
     fun removeMediaBlock(index: Int) {
         _uiState.update { current ->
             current.copy(
