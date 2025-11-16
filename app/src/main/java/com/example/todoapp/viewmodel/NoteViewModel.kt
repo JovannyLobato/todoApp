@@ -1,8 +1,9 @@
 package com.example.todoapp.viewmodel
 
+/*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.todoapp.data.Note
+import com.example.todoapp.model.Note
 import com.example.todoapp.data.NoteRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,3 +126,159 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     fun getAllNotes(): Flow<List<Note>> = repository.getAllNotes()
 }
+*/
+
+
+
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import com.example.todoapp.model.*
+
+
+import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.*
+import com.example.todoapp.repository.NoteRepository
+
+
+data class AddEditUiState(
+    val title: String = "",
+    val isTask: Boolean = false,
+    val dueDateTimestamp: Long? = null,
+    val mediaBlocks: MutableList<MediaBlock> = mutableListOf(),
+    val reminders: MutableList<Reminder> = mutableListOf(),
+    val showDatePicker: Boolean = false
+)
+
+
+class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(AddEditUiState())
+    val uiState: StateFlow<AddEditUiState> = _uiState
+
+    // ======== Manejadores de campos ========
+    fun onTitleChange(newTitle: String) {
+        _uiState.value = _uiState.value.copy(title = newTitle)
+    }
+
+    fun onIsTaskChange(value: Boolean) {
+        _uiState.value = _uiState.value.copy(isTask = value)
+    }
+
+    fun onDueDateChange(timestamp: Long?) {
+        _uiState.value = _uiState.value.copy(dueDateTimestamp = timestamp)
+    }
+
+    fun setShowDatePicker(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showDatePicker = show)
+    }
+
+    // ======== Manejo de bloques de contenido ========
+    fun addMediaBlock(type: MediaType, content: String? = null, description: String? = null) {
+        val order = _uiState.value.mediaBlocks.size
+        val newBlock = MediaBlock(0, 0, type, content, description, order)
+
+        _uiState.update { current ->
+            current.copy(
+                mediaBlocks = current.mediaBlocks.toMutableList().apply {
+                    add(newBlock)
+                }
+            )
+        }
+    }
+
+    fun updateMediaBlock(index: Int, content: String?, description: String?) {
+        _uiState.value.mediaBlocks[index] =
+            _uiState.value.mediaBlocks[index].copy(content = content, description = description)
+        _uiState.value = _uiState.value.copy(mediaBlocks = _uiState.value.mediaBlocks)
+    }
+    /*
+    fun removeMediaBlock(index: Int) {
+        _uiState.value.mediaBlocks.removeAt(index)
+        _uiState.value = _uiState.value.copy(mediaBlocks = _uiState.value.mediaBlocks)
+    }
+     */
+    fun removeMediaBlock(index: Int) {
+        _uiState.update { current ->
+            current.copy(
+                mediaBlocks = current.mediaBlocks.toMutableList().apply {
+                    removeAt(index)
+                }
+            )
+        }
+    }
+
+
+    // ======== Guardar Nota Completa ========
+    fun saveNote(isEditing: Boolean, noteId: Int? = null) {
+        viewModelScope.launch {
+            val idValue = noteId ?: -1
+            val note = Note(
+                id = if (idValue == -1) 0 else idValue,
+                title = _uiState.value.title,
+                isTask = _uiState.value.isTask,
+                dueDateTimestamp = _uiState.value.dueDateTimestamp
+            )
+            if (noteId == -1) {
+                // Crear nueva nota
+                repository.insertNoteWithDetails(note, _uiState.value.mediaBlocks, _uiState.value.reminders)
+            } else {
+                // Actualizar nota existente
+                repository.updateNoteWithDetails(note, _uiState.value.mediaBlocks, _uiState.value.reminders)
+            }
+        }
+    }
+
+    fun resetUiState() {
+        _uiState.value = AddEditUiState()
+    }
+
+
+
+
+
+    // Exponer Flow como StateFlow para Compose
+    private val _allNotes = repository.getAllNotes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
+    val allNotes: StateFlow<List<NoteWithDetails>> = _allNotes
+
+    // Métodos para UI que llaman a repository dentro de corutinas
+    fun insertNoteWithDetails(note: Note, media: List<MediaBlock> = emptyList(), reminders: List<Reminder> = emptyList()) {
+        viewModelScope.launch {
+            repository.insertNoteWithDetails(note, media, reminders)
+        }
+    }
+
+    fun updateNote(note: Note) {
+        viewModelScope.launch {
+            repository.updateNote(note)
+        }
+    }
+
+    fun deleteNote(note: Note) {
+        viewModelScope.launch {
+            repository.deleteNote(note)
+        }
+    }
+
+
+    fun loadNoteDetails(noteWithDetails: NoteWithDetails?) {
+        if (noteWithDetails != null) {
+            _uiState.value = AddEditUiState(
+                title = noteWithDetails.note.title,
+                isTask = noteWithDetails.note.isTask,
+                dueDateTimestamp = noteWithDetails.note.dueDateTimestamp,
+                mediaBlocks = noteWithDetails.mediaBlocks.toMutableList(),
+                reminders = noteWithDetails.reminders.toMutableList()
+            )
+        }
+    }
+
+    suspend fun getNoteWithDetails(id: Int): NoteWithDetails? {
+        return repository.getNoteWithDetails(id)
+    }
+}
+

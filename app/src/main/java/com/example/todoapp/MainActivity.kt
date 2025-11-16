@@ -1,7 +1,7 @@
 package com.example.todoapp
 
-import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -43,34 +43,47 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.todoapp.data.Note
+import androidx.navigation.navArgument
+import com.example.todoapp.model.MediaType
+import com.example.todoapp.model.Note
 import com.example.todoapp.ui.theme.TodoappTheme
 import com.example.todoapp.viewmodel.NoteViewModel
 
 
 class MainActivity : ComponentActivity() {
-
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("TodoAppDebug", "onCreate started")
+        try {
+            val app = application as TodoApplication
+            Log.d("TodoAppDebug", "TodoApplication OK")
 
-        setContent {
-            TodoappTheme {
-                // Calcula el tamaño de la ventana
-                val windowSize = calculateWindowSizeClass(this)
+            val viewModel = NoteViewModel(app.repository)
+            Log.d("TodoAppDebug", "NoteViewModel OK")
 
-                Surface {
-                    MyApp(windowSizeClass = windowSize.widthSizeClass)
+            setContent {
+                TodoappTheme {
+                    val windowSize = calculateWindowSizeClass(this)
+                    Surface {
+                        MyApp(
+                            windowSizeClass = windowSize.widthSizeClass,
+                            viewModel = viewModel
+                        )
+                    }
                 }
             }
+
+        } catch (e: Exception) {
+            Log.e("TodoAppDebug", "Error en MainActivity", e)
         }
     }
 }
@@ -78,9 +91,7 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun MyApp(windowSizeClass: WindowWidthSizeClass) {
-    val context = LocalContext.current.applicationContext as TodoApplication
-    val viewModel = remember { NoteViewModel(context.repository) }
+fun MyApp(windowSizeClass: WindowWidthSizeClass, viewModel: NoteViewModel) {
     val navController = rememberNavController()
 
     when (windowSizeClass) {
@@ -90,7 +101,7 @@ fun MyApp(windowSizeClass: WindowWidthSizeClass) {
     }
 }
 
-@Composable
+ @Composable
 fun TodoAppCompact(navController: NavHostController, viewModel: NoteViewModel) {
     NavHost(
         navController = navController,
@@ -101,25 +112,17 @@ fun TodoAppCompact(navController: NavHostController, viewModel: NoteViewModel) {
         }
 
         composable(
-            route = "edit/{id}/{title}/{description}/{imageUri}/{isTask}/{dueDateTimestamp}"
+            route = "edit?noteId={noteId}",
+            arguments = listOf(navArgument("noteId") {
+                type = NavType.IntType
+                defaultValue = -1
+            })
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
-            val title = Uri.decode(backStackEntry.arguments?.getString("title") ?: "")
-            val description = Uri.decode(backStackEntry.arguments?.getString("description") ?: "")
-            val imageUriEncoded = backStackEntry.arguments?.getString("imageUri") ?: "null"
-            val imageUri = if (imageUriEncoded == "null") null else Uri.decode(imageUriEncoded)
-            val isTask = backStackEntry.arguments?.getString("isTask")?.toBoolean() ?: false
-            val dueDateTimestamp = backStackEntry.arguments?.getString("dueDateTimestamp")?.toLongOrNull()
-
+            val noteId = backStackEntry.arguments?.getInt("noteId") ?: -1
             AddEditScreen(
                 navController = navController,
                 viewModel = viewModel,
-                noteId = id,
-                initialTitle = title,
-                initialDescription = description,
-                initialImageUri = imageUri,
-                initialIsTask = isTask,
-                initialDueDateTimestamp = dueDateTimestamp
+                noteId = noteId
             )
         }
     }
@@ -141,15 +144,10 @@ fun TodoAppMedium(navController: NavHostController, viewModel: NoteViewModel) {
                 onNoteSelected = { note ->
                     selectedNote = note
                 },
+
                 onAddNote = {
-                    selectedNote = Note(
-                        id = 0,
-                        title = "",
-                        description = "",
-                        imageUri = null,
-                        isTask = false,
-                        dueDateTimestamp = null
-                    )
+                    viewModel.resetUiState()
+                    selectedNote = Note(id = -1, title = "", isTask = false, dueDateTimestamp = null)
                 }
             )
         }
@@ -159,12 +157,7 @@ fun TodoAppMedium(navController: NavHostController, viewModel: NoteViewModel) {
                 AddEditScreen(
                     navController = navController,
                     viewModel = viewModel,
-                    noteId = selectedNote!!.id,
-                    initialTitle = selectedNote!!.title,
-                    initialDescription = selectedNote!!.description,
-                    initialImageUri = selectedNote!!.imageUri,
-                    initialIsTask = selectedNote!!.isTask,
-                    initialDueDateTimestamp = selectedNote!!.dueDateTimestamp
+                    noteId = selectedNote!!.id
                 )
             } else {
                 Box(
@@ -185,7 +178,7 @@ fun TodoAppExpanded(navController: NavHostController, viewModel: NoteViewModel) 
             MainScreen(navController, viewModel, isCompact = false)
         }
         Box(modifier = Modifier.weight(0.6f)) {
-            AddEditScreen(navController, viewModel, 0, "", "", null, false, null)
+            AddEditScreen(navController, viewModel, noteId = 0)
         }
     }
 }
@@ -204,7 +197,9 @@ fun MainScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf( allString) }
 
-    val notes by viewModel.getAllNotes().collectAsState(initial = emptyList())
+    val notesWithDetails by viewModel.allNotes.collectAsState()
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -233,10 +228,12 @@ fun MainScreen(
                 onClick = {
                     if (isCompact) {
                         // En pantallas compact navega a la pantalla de edición
-                        val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
+                        // val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
+                        val defaultRoute = "edit?noteId=-1"
                         navController.navigate(defaultRoute)
                     } else {
                         // En pantallas medianas/grandes, solo limpia el formulario
+
                         onAddNote?.invoke()
                     }
                 },
@@ -280,35 +277,34 @@ fun MainScreen(
         val tasks = stringResource(id = R.string.tasks)
         LazyColumn {
             items(
-                notes.filter { note ->
-                    (selectedFilter == all  ||
-                            (selectedFilter == notesString  && !note.isTask) ||
-                            (selectedFilter == tasks  && note.isTask)) &&
+                notesWithDetails.filter { noteWithDetails ->
+                    val note = noteWithDetails.note
+                    (selectedFilter == all ||
+                            (selectedFilter == notesString && !note.isTask) ||
+                            (selectedFilter == tasks && note.isTask)) &&
                             note.title.contains(searchQuery, ignoreCase = true)
                 }
-            ) { note -> NoteItem(
-                title = note.title,
-                description = note.description,
-                imageUri = note.imageUri,
-                isTask = note.isTask,
-                dueDateTimestamp = note.dueDateTimestamp,
-                onClick = {
-                    if (isCompact){
-                        val id = note.id
-                        val titleEncoded = Uri.encode(note.title)
-                        val descEncoded = Uri.encode(note.description)
-                        val imgEncoded = note.imageUri?.let { Uri.encode(it) } ?: "null"
-                        val isTaskEncoded = note.isTask.toString()
-                        val timestampEncoded = note.dueDateTimestamp?.toString() ?: "null"
-                        navController.navigate("edit/$id/$titleEncoded/$descEncoded/$imgEncoded/$isTaskEncoded/$timestampEncoded")
-                    }else{
-                        onNoteSelected(note)
+            ) { noteWithDetails ->
+                val note = noteWithDetails.note
+
+                // Obtiene el primer bloque de texto e imagen si existen (para mostrar algo en la lista)
+                val firstText = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.TEXT }?.content ?: ""
+                val firstImageUri = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.IMAGE }?.content
+
+                NoteItem(
+                    title = note.title,
+                    description = firstText,
+                    imageUri = firstImageUri,
+                    isTask = note.isTask,
+                    dueDateTimestamp = note.dueDateTimestamp,
+                    onClick = {
+                        if (isCompact) {
+                            navController.navigate("edit?noteId=${note.id}")
+                        } else {
+                            onNoteSelected(note)
+                        }
                     }
-
-
-
-                }
-            )
+                )
             }
         }
     }

@@ -1,346 +1,63 @@
 package com.example.todoapp
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.Alignment
-import java.text.SimpleDateFormat
-import java.util.*
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.rememberDatePickerState
-import android.app.TimePickerDialog
-import android.net.Uri
-import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.todoapp.model.MediaType
+import com.example.todoapp.repository.NoteRepository
 import com.example.todoapp.viewmodel.NoteViewModel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.selects.select
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.Videocam
 
-
-@Composable
-fun AddEditScreen(
-    navController: NavController,
-    viewModel: NoteViewModel,
-    noteId: Int,
-    initialTitle: String,
-    initialDescription: String,
-    initialImageUri: String?,
-    initialIsTask: Boolean,
-    initialDueDateTimestamp: Long?
-) {
-    AddEditContent(
-        isEditing = noteId > 0,
-        viewModel = viewModel,
-        navController = navController,
-        noteId = noteId,
-        initialTitle = initialTitle,
-        initialDescription = initialDescription,
-        initialImageUri = initialImageUri,
-        initialIsTask = initialIsTask,
-        initialDueDateTimestamp = initialDueDateTimestamp
-    )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddEditContent(
-    isEditing: Boolean,
-    viewModel: NoteViewModel,
-    navController: NavController,
-    noteId: Int,
-    initialTitle: String,
-    initialDescription: String,
-    initialImageUri: String?,
-    initialIsTask: Boolean,
-    initialDueDateTimestamp: Long?
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val contextAndroid = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    /*
-    var dueDateTimestamp = uiState.dueDateTimestamp
-    var title = uiState.title
-    var isTask = uiState.isTask
-    var description = uiState.description
-    var imageUri = uiState.imageUri
-    var showDatePicker = uiState.showDatePicker
-    */
-    LaunchedEffect(noteId) {
-        viewModel.loadNoteData(
-            initialTitle,
-            initialDescription,
-            initialImageUri,
-            initialIsTask,
-            initialDueDateTimestamp
-        )
-    }
-
-    Column {
-        TextField(
-            value = uiState.title,
-            onValueChange = viewModel::onTitleChange,
-            label = { Text(text = stringResource(id = R.string.tittle) ) }
-        )
-
-        TextField(
-            value = uiState.description,
-            onValueChange = viewModel::onDescriptionChange,
-            label = { Text(text = stringResource(id = R.string.description)) }
-        )
-
-        Switch(
-            checked = uiState.isTask,
-            onCheckedChange = viewModel::onIsTaskChange
-        )
-
-        Button(onClick = { viewModel.setShowDatePicker(true) }) {
-            Text(text = stringResource(id = R.string.select_date))
-        }
-
-        if (uiState.showDatePicker) {
-        }
-
-        Button(onClick = {
-            viewModel.saveNote(noteId, isEditing)
-            navController.popBackStack()
-        }) {
-            Text(if (isEditing) stringResource(id = R.string.update)
-            else stringResource(id = R.string.save))
-        }
-    }
-
-    val tempDateCalendar = remember {
-        Calendar.getInstance().apply {
-            initialDueDateTimestamp?.let { timeInMillis = it }
-        }
-    }
-
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            uiState.imageUri = it.toString()
-            val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            try {
-                contextAndroid.contentResolver.takePersistableUriPermission(it, flag)
-            } catch (e: SecurityException) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    val timePickerDialog = TimePickerDialog(
-        contextAndroid,
-        { _, hour: Int, minute: Int ->
-            tempDateCalendar.set(Calendar.HOUR_OF_DAY, hour)
-            tempDateCalendar.set(Calendar.MINUTE, minute)
-            tempDateCalendar.set(Calendar.SECOND, 0)
-            tempDateCalendar.set(Calendar.MILLISECOND, 0)
-            viewModel.onDueDateChange(tempDateCalendar.timeInMillis)
-        },
-        tempDateCalendar.get(Calendar.HOUR_OF_DAY),
-        tempDateCalendar.get(Calendar.MINUTE),
-        true
-    )
-
-    val onSave: () -> Unit = {
-        if (uiState.title.isNotBlank()) {
-            scope.launch {
-                val finalTimestamp = if (uiState.isTask) uiState.dueDateTimestamp else null
-
-                if (isEditing) {
-                    viewModel.updateNote(noteId, uiState.title, uiState.description,
-                        uiState.imageUri, uiState.isTask, finalTimestamp)
-                } else {
-                    viewModel.addNote(uiState.title, uiState.description, uiState.imageUri, uiState.isTask, finalTimestamp)
-                }
-                navController.popBackStack()
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(if (isEditing) "Editar Elemento" else "Añadir Elemento") },
-                // title = {},
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // CAMPO DE titulo
-            OutlinedTextField(
-                value = uiState.title,
-                onValueChange = { viewModel.onTitleChange(it) },
-                label = { Text(text = stringResource(id = R.string.tittle)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // CAMPO DE DESCRIPCIÓN
-            OutlinedTextField(
-                value = uiState.description,
-                onValueChange = { viewModel.onDescriptionChange(it) },
-                label = { Text(text = stringResource(id = R.string.description)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = stringResource(id = R.string.is_a_taskq), style = MaterialTheme.typography.titleMedium)
-                Switch(
-                    checked = uiState.isTask,
-                    onCheckedChange = {
-                        viewModel.onIsTaskChange(it)
-                        // Limpiar el timestamp si se desactiva Tarea
-                        if (!it) viewModel.onDueDateChange(null)
-
-                    }
-                )
-            }
-
-            if (uiState.isTask) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedButton(
-                    onClick = { viewModel.setShowDatePicker(true) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.DateRange, contentDescription = "Fecha de Vencimiento")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = formatTimestamp(uiState.dueDateTimestamp),
-                            color = if (uiState.dueDateTimestamp == null) MaterialTheme.colorScheme.error else LocalContentColor.current
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // BOTÓN PARA SELECCIONAR IMAGEN
-            OutlinedButton(
-                onClick = { imagePickerLauncher.launch("image/*") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text (stringResource(
-                        if (uiState.imageUri != null)
-                            R.string.change_image
-                        else
-                            R.string.select_an_image
-                    )
-                )
-            }
-
-            if (uiState.imageUri != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { uiState.imageUri = null }) {
-                        Text(text= stringResource(id = R.string.delete_image), color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                // me quede aqui
-                // VISUALIZACIÓN DE IMAGEN
-                AsyncImage(
-                    model = Uri.parse(uiState.imageUri),
-                    contentDescription = stringResource(id = R.string.image_selected),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(vertical = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = onSave,
-                enabled = uiState.title.isNotBlank() && (!uiState.isTask || uiState.dueDateTimestamp != null),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (noteId == 0) stringResource(id = R.string.create) +
-                        " ${if (uiState.isTask) stringResource(id = R.string.task) 
-                        else stringResource(id = R.string.note)}"
-                else stringResource(id = R.string.save_changes))
-            }
-        }
-    }
-
-    if (uiState.showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dueDateTimestamp ?: System.currentTimeMillis()
-        )
-        DatePickerDialog(
-            onDismissRequest = { viewModel.setShowDatePicker(false) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.setShowDatePicker(false)
-                        datePickerState.selectedDateMillis?.let { millis ->
-
-                            val tempCal = Calendar.getInstance().apply { timeInMillis = millis }
-                            tempDateCalendar.set(tempCal.get(Calendar.YEAR), tempCal.get(Calendar.MONTH), tempCal.get(Calendar.DAY_OF_MONTH))
-
-
-                            timePickerDialog.show()
-                        }
-                    }
-                ) { Text(text = stringResource(id = R.string.next_hour)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.setShowDatePicker(false) }) { Text(
-                    text = stringResource(id = R.string.cancel)) }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    // Agregar coil y exoplayer para foto y video
-    // dependencias
-}
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun formatTimestamp(timestamp: Long?): String {
@@ -351,3 +68,155 @@ fun formatTimestamp(timestamp: Long?): String {
         stringResource(id = R.string.select_a_date_and_time_for_the_task )
     }
 }
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddEditScreen(
+    navController: NavController,
+    viewModel: NoteViewModel,
+    noteId: Int = -1
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // carga la nota seleccionada
+    LaunchedEffect(noteId) {
+        if (noteId != -1) {
+            val noteWithDetails = viewModel.getNoteWithDetails(noteId)
+            viewModel.loadNoteDetails(noteWithDetails)
+        } else {
+            viewModel.resetUiState()
+        }
+    }
+
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (noteId != -1) "Editar Nota/Tarea" else "Nueva Nota/Tarea") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
+                    navController.popBackStack()
+                },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Save, contentDescription = "Guardar")
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            OutlinedTextField(
+                value = uiState.title,
+                onValueChange = { viewModel.onTitleChange(it) },
+                label = { Text("Título") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+
+
+
+            Text("Contenido:")
+            uiState.mediaBlocks.forEachIndexed { index, block ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Column(Modifier.padding(8.dp)) {
+                        Text("Tipo: ${block.type}")
+                        Text("Contenido: ${block.content ?: "Sin contenido"}")
+                        block.description?.let { Text("Descripción: $it") }
+                        Spacer(Modifier.height(4.dp))
+                        TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
+                            Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("¿Es una tarea?")
+                Switch(
+                    checked = uiState.isTask,
+                    onCheckedChange = { viewModel.onIsTaskChange(it) }
+                )
+            }
+
+            if (uiState.isTask) {
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { viewModel.setShowDatePicker(true) }) {
+                    Text(
+                        if (uiState.dueDateTimestamp == null)
+                            "Seleccionar fecha límite"
+                        else
+                            "Fecha: ${formatTimestamp(uiState.dueDateTimestamp)}"
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
+                    Icon(Icons.Filled.Description, contentDescription = "Agregar texto")
+                }
+                Button(onClick = { viewModel.addMediaBlock(MediaType.IMAGE, "uri_de_imagen") }) {
+                    Icon(Icons.Filled.Image, contentDescription = "Agregar imagen")
+                }
+                Button(onClick = { viewModel.addMediaBlock(MediaType.AUDIO, "uri_de_audio") }) {
+                    Icon(Icons.Filled.Audiotrack, contentDescription = "Agregar audio")
+                }
+                Button(onClick = { viewModel.addMediaBlock(MediaType.VIDEO, "uri_de_video") }) {
+                    Icon(Icons.Filled.Videocam, contentDescription = "Agregar video")
+                }
+            }
+        }
+    }
+
+    if (uiState.showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { viewModel.setShowDatePicker(false) },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        viewModel.onDueDateChange(it)
+                    }
+                    viewModel.setShowDatePicker(false)
+                }) { Text("Aceptar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+
+}
+
+
