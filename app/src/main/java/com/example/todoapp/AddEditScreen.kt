@@ -1,5 +1,8 @@
 package com.example.todoapp
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,9 +58,16 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Videocam
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ButtonDefaults
+
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.core.content.FileProvider
+import java.io.File
 
 @Composable
 fun formatTimestamp(timestamp: Long?): String {
@@ -66,6 +76,54 @@ fun formatTimestamp(timestamp: Long?): String {
         SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(date)
     } else {
         stringResource(id = R.string.select_a_date_and_time_for_the_task )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ImagePickerSheet(
+    onTakePhoto: () -> Unit,
+    onPickGallery: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text("Agregar imagen", style = MaterialTheme.typography.titleMedium)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = {
+                    onTakePhoto()
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Tomar foto")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    onPickGallery()
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Elegir desde galería")
+            }
+        }
     }
 }
 
@@ -80,6 +138,45 @@ fun AddEditScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+
+    // Estado para mostrar el bottom sheet / cámara
+    var showImageSheet by remember { mutableStateOf(false) }
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) } // URI temporal para TakePicture
+    // GetContent
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.addMediaBlock(MediaType.IMAGE, it.toString())
+        }
+    }
+    // TakePicture - necesita un URI FileProvider
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            tempPhotoUri?.let { uri ->
+                viewModel.addMediaBlock(MediaType.IMAGE, uri.toString())
+            }
+        }
+        // limpia el estado
+        tempPhotoUri = null
+    }
+    // funcionn para crear archivo temporal y lanzar la camara
+    fun launchCamera() {
+        val file = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+        file.createNewFile()
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            file
+        )
+        tempPhotoUri = uri
+        takePictureLauncher.launch(uri)
+    }
+
+
 
     // carga la nota seleccionada
     LaunchedEffect(noteId) {
@@ -115,6 +212,47 @@ fun AddEditScreen(
             }
         }
     ) { padding ->
+        if (showImageSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showImageSheet = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text("Agregar imagen", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            launchCamera()
+                            showImageSheet = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Tomar foto")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            galleryLauncher.launch("image/*")
+                            showImageSheet = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Elegir desde galería")
+                    }
+                }
+            }
+        }
+
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -186,7 +324,7 @@ fun AddEditScreen(
                 Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
                     Icon(Icons.Filled.Description, contentDescription = "Agregar texto")
                 }
-                Button(onClick = { viewModel.addMediaBlock(MediaType.IMAGE, "uri_de_imagen") }) {
+                Button(onClick = { showImageSheet = true }) {
                     Icon(Icons.Filled.Image, contentDescription = "Agregar imagen")
                 }
                 Button(onClick = { viewModel.addMediaBlock(MediaType.AUDIO, "uri_de_audio") }) {
