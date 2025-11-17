@@ -1,8 +1,10 @@
 package com.example.todoapp
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -62,11 +64,18 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Transparent
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.core.content.FileProvider
+import coil.compose.rememberAsyncImagePainter
 import java.io.File
 
 @Composable
@@ -148,6 +157,14 @@ fun AddEditScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch(e: Exception){
+
+            }
             viewModel.addMediaBlock(MediaType.IMAGE, it.toString())
         }
     }
@@ -252,22 +269,23 @@ fun AddEditScreen(
                 }
             }
         }
-
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+
             OutlinedTextField(
                 value = uiState.title,
                 onValueChange = { viewModel.onTitleChange(it) },
                 label = { Text("Título") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(22.dp))
 
 
 
@@ -276,12 +294,55 @@ fun AddEditScreen(
             uiState.mediaBlocks.forEachIndexed { index, block ->
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+                        .fillMaxWidth(),
+                    shape = RectangleShape,
+                    elevation = CardDefaults.cardElevation(0.dp)
+                    /* hay que cambiar  esto cuando esten los estilos listos
+                    colors = CardDefaults.cardColors(
+                        containerColor = Transparent
+                    )*/
                 ) {
-                    Column(Modifier.padding(8.dp)) {
-                        Text("Tipo: ${block.type}")
-                        Text("Contenido: ${block.content ?: "Sin contenido"}")
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                    ) {
+                        when (block.type) {
+
+                            MediaType.TEXT -> {
+                                Text(block.content ?: "Sin texto")
+                            }
+
+                            MediaType.IMAGE -> {
+                                block.content?.let { uri ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Start
+                                    ) {
+                                        Image(
+                                            painter = rememberAsyncImagePainter(uri),
+                                            contentDescription = "Imagen",
+                                            modifier = Modifier
+                                                .width(250.dp)
+                                                .heightIn(min = 200.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                } ?: Text("Sin imagen")
+                            }
+
+                            MediaType.AUDIO -> {
+                                Text("Audio: ${block.content ?: "Sin audio"}")
+                                // Luego aquí agregamos exoplayer de audio si quieres
+                            }
+
+                            MediaType.VIDEO -> {
+                                Text("Video: ${block.content ?: "Sin video"}")
+                                // Luego metemos ExoPlayer
+                            }
+                        }
+
+
                         block.description?.let { Text("Descripción: $it") }
                         Spacer(Modifier.height(4.dp))
                         TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
