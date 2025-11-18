@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,7 +42,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -65,10 +65,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
@@ -207,6 +209,8 @@ fun AddEditScreen(
 
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(if (noteId != -1) "Editar Nota/Tarea" else "Nueva Nota/Tarea") },
@@ -216,8 +220,42 @@ fun AddEditScreen(
                     }
                 }
             )
-        },
+        }
+/*
+        bottomBar = {
+            BottomAppBar(
+                tonalElevation = 0.dp,
+                containerColor = Color.Transparent
+            ) {
+                Surface(
+                    color = Color.Transparent,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.Close, contentDescription = "Salir")
+                        }
+                        IconButton(onClick = {
+                            viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
+                            navController.popBackStack()
+                        }) {
+                            Icon(Icons.Default.Save, contentDescription = "Guardar")
+                        }
+                    }
+                }
+            }
+        }
+ */
+/*
         floatingActionButton = {
+
             FloatingActionButton(
                 onClick = {
                     viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
@@ -228,6 +266,8 @@ fun AddEditScreen(
                 Icon(Icons.Default.Save, contentDescription = "Guardar")
             }
         }
+
+ */
     ) { padding ->
         if (showImageSheet) {
             ModalBottomSheet(
@@ -269,133 +309,177 @@ fun AddEditScreen(
                 }
             }
         }
-        Column(
+        Box(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 0.dp)
         ) {
-
-            OutlinedTextField(
-                value = uiState.title,
-                onValueChange = { viewModel.onTitleChange(it) },
-                label = { Text("Título") },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .padding(padding)
+                    .padding(horizontal = 0.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
 
-            )
-
-            Spacer(Modifier.height(22.dp))
-
-
-
-
-            Text("Contenido:")
-            uiState.mediaBlocks.forEachIndexed { index, block ->
-                Card(
+                OutlinedTextField(
+                    value = uiState.title,
+                    onValueChange = { viewModel.onTitleChange(it) },
+                    label = { Text("Título") },
                     modifier = Modifier
-                        .fillMaxWidth(),
-                    shape = RectangleShape,
-                    elevation = CardDefaults.cardElevation(0.dp)
-                    /* hay que cambiar  esto cuando esten los estilos listos
-                    colors = CardDefaults.cardColors(
-                        containerColor = Transparent
-                    )*/
-                ) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
+                        .fillMaxWidth()
+
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text("Contenido:")
+                uiState.mediaBlocks.forEachIndexed { index, block ->
+                    Card(
+                        modifier = Modifier
+                            .padding(
+                                horizontal = 0.dp
+                            )
+
+                            .fillMaxWidth(),
+
+                        shape = RectangleShape,
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        //hay que cambiar  esto cuando esten los estilos listos
+                        colors = CardDefaults.cardColors(
+                            containerColor = Transparent
+                        )
                     ) {
-                        when (block.type) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            when (block.type) {
 
-                            MediaType.TEXT -> {
-                                Text(block.content ?: "Sin texto")
+                                MediaType.TEXT -> {
+                                    Text(block.content ?: "Sin texto")
+                                }
+
+                                MediaType.IMAGE -> {
+                                    block.content?.let { uri ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.Start
+                                        ) {
+                                            Image(
+                                                painter = rememberAsyncImagePainter(uri),
+                                                contentDescription = "Imagen",
+                                                modifier = Modifier
+                                                    .width(250.dp)
+                                                    .heightIn(min = 200.dp),
+
+                                                contentScale = ContentScale.Fit,
+                                                alignment = Alignment.TopStart
+                                            )
+                                        }
+                                    } ?: Text("Sin imagen")
+                                }
+
+                                MediaType.AUDIO -> {
+                                    Text("Audio: ${block.content ?: "Sin audio"}")
+                                    // Luego aquí agregamos exoplayer de audio si quieres
+                                }
+
+                                MediaType.VIDEO -> {
+                                    Text("Video: ${block.content ?: "Sin video"}")
+                                    // Luego metemos ExoPlayer
+                                }
                             }
 
-                            MediaType.IMAGE -> {
-                                block.content?.let { uri ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Start
-                                    ) {
-                                        Image(
-                                            painter = rememberAsyncImagePainter(uri),
-                                            contentDescription = "Imagen",
-                                            modifier = Modifier
-                                                .width(250.dp)
-                                                .heightIn(min = 200.dp)
-                                                .clip(RoundedCornerShape(8.dp)),
-                                            contentScale = ContentScale.Fit
-                                        )
-                                    }
-                                } ?: Text("Sin imagen")
+
+                            block.description?.let { Text("Descripción: $it") }
+                            Spacer(Modifier.height(4.dp))
+                            TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
+                                Text("Eliminar", color = MaterialTheme.colorScheme.error)
                             }
-
-                            MediaType.AUDIO -> {
-                                Text("Audio: ${block.content ?: "Sin audio"}")
-                                // Luego aquí agregamos exoplayer de audio si quieres
-                            }
-
-                            MediaType.VIDEO -> {
-                                Text("Video: ${block.content ?: "Sin video"}")
-                                // Luego metemos ExoPlayer
-                            }
-                        }
-
-
-                        block.description?.let { Text("Descripción: $it") }
-                        Spacer(Modifier.height(4.dp))
-                        TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
-                            Text("Eliminar", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
-            }
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("¿Es una tarea?")
-                Switch(
-                    checked = uiState.isTask,
-                    onCheckedChange = { viewModel.onIsTaskChange(it) }
-                )
-            }
-
-            if (uiState.isTask) {
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = { viewModel.setShowDatePicker(true) }) {
-                    Text(
-                        if (uiState.dueDateTimestamp == null)
-                            "Seleccionar fecha límite"
-                        else
-                            "Fecha: ${formatTimestamp(uiState.dueDateTimestamp)}"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("¿Es una tarea?")
+                    Switch(
+                        checked = uiState.isTask,
+                        onCheckedChange = { viewModel.onIsTaskChange(it) }
                     )
                 }
+
+                if (uiState.isTask) {
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = { viewModel.setShowDatePicker(true) }) {
+                        Text(
+                            if (uiState.dueDateTimestamp == null)
+                                "Seleccionar fecha límite"
+                            else
+                                "Fecha: ${formatTimestamp(uiState.dueDateTimestamp)}"
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
+                        Icon(Icons.Filled.Description, contentDescription = "Agregar texto")
+                    }
+                    Button(onClick = { showImageSheet = true }) {
+                        Icon(Icons.Filled.Image, contentDescription = "Agregar imagen")
+                    }
+                    Button(onClick = { viewModel.addMediaBlock(MediaType.AUDIO, "uri_de_audio") }) {
+                        Icon(Icons.Filled.Audiotrack, contentDescription = "Agregar audio")
+                    }
+                    Button(onClick = { viewModel.addMediaBlock(MediaType.VIDEO, "uri_de_video") }) {
+                        Icon(Icons.Filled.Videocam, contentDescription = "Agregar video")
+                    }
+                }
+
+                Spacer(Modifier.height(70.dp))
             }
 
-            Spacer(Modifier.height(8.dp))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .imePadding()     // 👈 hace que el contenido suba cuando aparece el teclado
             ) {
-                Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
-                    Icon(Icons.Filled.Description, contentDescription = "Agregar texto")
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Salir")
                 }
-                Button(onClick = { showImageSheet = true }) {
-                    Icon(Icons.Filled.Image, contentDescription = "Agregar imagen")
-                }
-                Button(onClick = { viewModel.addMediaBlock(MediaType.AUDIO, "uri_de_audio") }) {
-                    Icon(Icons.Filled.Audiotrack, contentDescription = "Agregar audio")
-                }
-                Button(onClick = { viewModel.addMediaBlock(MediaType.VIDEO, "uri_de_video") }) {
-                    Icon(Icons.Filled.Videocam, contentDescription = "Agregar video")
+
+                IconButton(
+                    onClick = {
+                        viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = "Guardar")
                 }
             }
+
         }
+
     }
 
     if (uiState.showDatePicker) {
