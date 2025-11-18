@@ -7,19 +7,6 @@ import kotlinx.coroutines.flow.Flow
 import com.example.todoapp.model.*
 
 class NoteRepository(private val noteDao: NoteDao) {
-    /*
-    suspend fun insertNoteWithDetails(note: Note, media: List<MediaBlock>, reminders: List<Reminder>) {
-        val noteId = noteDao.insertNote(note).toInt()
-        val mediaWithNoteId = media.map { it.copy(noteId = noteId) }
-        val remindersWithNoteId = reminders.map { it.copy(noteId = noteId) }
-
-        noteDao.insertMediaBlocks(mediaWithNoteId)
-        noteDao.insertReminders(remindersWithNoteId)
-    }
-    */
-    /*
-    suspend fun getAllNotes() = noteDao.getAllNotesWithDetails()
-    */
     fun getAllNotes(): Flow<List<NoteWithDetails>> = noteDao.getAllNotesWithDetails()
     suspend fun getNote(id: Int) = noteDao.getNoteWithDetails(id)
 
@@ -73,6 +60,9 @@ class NoteRepository(private val noteDao: NoteDao) {
 
         noteDao.insertMediaBlocks(mediaWithNoteId)
         noteDao.insertReminders(remindersWithNoteId)
+    }
+    suspend fun updateDescription(blockId: Int, newDescription: String) {
+        noteDao.updateMediaBlockDescription(blockId, newDescription)
     }
 
 

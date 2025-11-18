@@ -221,53 +221,6 @@ fun AddEditScreen(
                 }
             )
         }
-/*
-        bottomBar = {
-            BottomAppBar(
-                tonalElevation = 0.dp,
-                containerColor = Color.Transparent
-            ) {
-                Surface(
-                    color = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Salir")
-                        }
-                        IconButton(onClick = {
-                            viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
-                            navController.popBackStack()
-                        }) {
-                            Icon(Icons.Default.Save, contentDescription = "Guardar")
-                        }
-                    }
-                }
-            }
-        }
- */
-/*
-        floatingActionButton = {
-
-            FloatingActionButton(
-                onClick = {
-                    viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
-                    navController.popBackStack()
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Save, contentDescription = "Guardar")
-            }
-        }
-
- */
     ) { padding ->
         if (showImageSheet) {
             ModalBottomSheet(
@@ -335,6 +288,7 @@ fun AddEditScreen(
 
                 Text("Contenido:")
                 uiState.mediaBlocks.forEachIndexed { index, block ->
+                    var description by remember { mutableStateOf(block.description ?: "") }
                     Card(
                         modifier = Modifier
                             .padding(
@@ -394,7 +348,23 @@ fun AddEditScreen(
                             }
 
 
-                            block.description?.let { Text("Descripción: $it") }
+                            TextField(
+                                value = description,
+                                onValueChange = { newValue ->
+                                    description = newValue
+                                    viewModel.updateBlockDescription(block.id, newValue)
+                                },
+                                modifier = Modifier
+                                    .width(200.dp),
+                                placeholder = { Text("Descripción…") },
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = Color.Gray
+                                )
+                            )
                             Spacer(Modifier.height(4.dp))
                             TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
                                 Text("Eliminar", color = MaterialTheme.colorScheme.error)
@@ -454,7 +424,7 @@ fun AddEditScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .imePadding()     // 👈 hace que el contenido suba cuando aparece el teclado
+                    .imePadding()     // hace que el contenido suba cuando aparece el teclado
             ) {
                 IconButton(
                     onClick = { navController.popBackStack() },

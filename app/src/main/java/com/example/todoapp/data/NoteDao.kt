@@ -57,5 +57,8 @@ interface NoteDao {
     suspend fun deleteRemindersByNoteId(noteId: Int)
 
 
+    @Query("UPDATE mediablock SET description = :newDescription WHERE id = :blockId")
+    suspend fun updateMediaBlockDescription(blockId: Int, newDescription: String)
+
 
 }
