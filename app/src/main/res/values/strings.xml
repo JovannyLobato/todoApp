@@ -25,6 +25,7 @@
     <string name="task">task</string>
     <string name="note">note</string>
     <string name="select_a_note_for_edit">Select a note for edit</string>
+    <string name="no_tittle">no tittle</string>
 
 
 </resources>

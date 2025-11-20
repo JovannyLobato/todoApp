@@ -10,6 +10,9 @@ import com.example.todoapp.model.*
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.*
 import com.example.todoapp.repository.NoteRepository
+import java.util.UUID
+
+private var nextBlockId = 1
 
 data class AddEditUiState(
     val title: String = "",
@@ -17,7 +20,7 @@ data class AddEditUiState(
     val dueDateTimestamp: Long? = null,
     val mediaBlocks: List<MediaBlock> = emptyList(),
     // val mediaBlocks: MutableList<MediaBlock> = mutableListOf(),
-    val reminders: MutableList<Reminder> = mutableListOf(),
+    val reminders: List<Reminder> = emptyList(),
     val showDatePicker: Boolean = false
 )
 
@@ -45,15 +48,24 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
     // ======== Manejo de bloques de contenido ========
-    fun addMediaBlock(type: MediaType, content: String? = null, description: String? = null) {
+    fun addMediaBlock(
+        type: MediaType,
+        content: String? = null,
+        description: String? = null
+    ) {
         val order = _uiState.value.mediaBlocks.size
-        val newBlock = MediaBlock(0, 0, type, content, description, order)
+        val newBlock = MediaBlock(
+            id = UUID.randomUUID().mostSignificantBits.toInt(),
+            noteId = 0,
+            type = type,
+            content = content,
+            description = description,
+            order = order
+        )
 
         _uiState.update { current ->
             current.copy(
-                mediaBlocks = current.mediaBlocks.toMutableList().apply {
-                    add(newBlock)
-                }
+                mediaBlocks = current.mediaBlocks + newBlock
             )
         }
     }
@@ -142,13 +154,17 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     // guarda la descripcion:
     fun updateBlockDescription(blockId: Int, newDescription: String) {
-        val updatedBlocks = _uiState.value.mediaBlocks.map { block ->
-            if (block.id == blockId) block.copy(description = newDescription)
-            else block
+        _uiState.update { state ->
+            state.copy(
+                mediaBlocks = state.mediaBlocks.map { block ->
+                    if (block.id == blockId)
+                        block.copy(description = newDescription)
+                    else block
+                }
+            )
         }
-
-        _uiState.value = _uiState.value.copy(mediaBlocks = updatedBlocks)
     }
+
 
 
 

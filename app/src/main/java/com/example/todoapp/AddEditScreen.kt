@@ -78,6 +78,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
+
 import java.io.File
 
 @Composable
@@ -137,6 +138,7 @@ fun ImagePickerSheet(
         }
     }
 }
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,21 +206,26 @@ fun AddEditScreen(
             viewModel.loadNoteDetails(noteWithDetails)
         } else {
             viewModel.resetUiState()
+            viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto")
         }
     }
 
-
+    val color = Color(0xFF120524)
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         containerColor = Color.Transparent,
+        modifier = Modifier
+            .padding(top = 10.dp),
         topBar = {
-            TopAppBar(
-                title = { Text(if (noteId != -1) "Editar Nota/Tarea" else "Nueva Nota/Tarea") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+            TextField(
+                value = uiState.title,
+                onValueChange = { viewModel.onTitleChange(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp)
+                    .padding(top = 30.dp)
+                    .background(Color.Transparent),
+                maxLines = 2,
             )
         }
     ) { padding ->
@@ -274,103 +281,103 @@ fun AddEditScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
+                // Spacer(Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = uiState.title,
-                    onValueChange = { viewModel.onTitleChange(it) },
-                    label = { Text("Título") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                Text("Contenido:")
+                // Text("Contenido:")
                 uiState.mediaBlocks.forEachIndexed { index, block ->
-                    var description by remember { mutableStateOf(block.description ?: "") }
-                    Card(
-                        modifier = Modifier
-                            .padding(
-                                horizontal = 0.dp
-                            )
-
-                            .fillMaxWidth(),
-
-                        shape = RectangleShape,
-                        elevation = CardDefaults.cardElevation(0.dp),
-                        //hay que cambiar  esto cuando esten los estilos listos
-                        colors = CardDefaults.cardColors(
-                            containerColor = Transparent
-                        )
-                    ) {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            when (block.type) {
-
-                                MediaType.TEXT -> {
-                                    Text(block.content ?: "Sin texto")
-                                }
-
-                                MediaType.IMAGE -> {
-                                    block.content?.let { uri ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.Start
-                                        ) {
-                                            Image(
-                                                painter = rememberAsyncImagePainter(uri),
-                                                contentDescription = "Imagen",
-                                                modifier = Modifier
-                                                    .width(250.dp)
-                                                    .heightIn(min = 200.dp),
-
-                                                contentScale = ContentScale.Fit,
-                                                alignment = Alignment.TopStart
-                                            )
-                                        }
-                                    } ?: Text("Sin imagen")
-                                }
-
-                                MediaType.AUDIO -> {
-                                    Text("Audio: ${block.content ?: "Sin audio"}")
-                                    // Luego aquí agregamos exoplayer de audio si quieres
-                                }
-
-                                MediaType.VIDEO -> {
-                                    Text("Video: ${block.content ?: "Sin video"}")
-                                    // Luego metemos ExoPlayer
-                                }
-                            }
-
-
-                            TextField(
-                                value = description,
-                                onValueChange = { newValue ->
-                                    description = newValue
-                                    viewModel.updateBlockDescription(block.id, newValue)
-                                },
-                                modifier = Modifier
-                                    .width(200.dp),
-                                placeholder = { Text("Descripción…") },
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    disabledContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedIndicatorColor = Color.Gray
+                    key(block.id) {
+                        val description = block.description ?: ""
+                        Card(
+                            modifier = Modifier
+                                .padding(
+                                    horizontal = 0.dp
                                 )
+
+                                .fillMaxWidth(),
+
+                            shape = RectangleShape,
+                            elevation = CardDefaults.cardElevation(0.dp),
+                            //hay que cambiar  esto cuando esten los estilos listos
+                            colors = CardDefaults.cardColors(
+                                containerColor = Transparent
                             )
-                            Spacer(Modifier.height(4.dp))
-                            TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
-                                Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                        ) {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp)
+                                    .padding(bottom = 10.dp),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                when (block.type) {
+
+                                    MediaType.TEXT -> {
+                                    }
+
+                                    MediaType.IMAGE -> {
+                                        block.content?.let { uri ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.Start
+                                            ) {
+                                                Image(
+                                                    painter = rememberAsyncImagePainter(uri),
+                                                    contentDescription = "Imagen",
+                                                    modifier = Modifier
+                                                        .width(250.dp)
+                                                        .heightIn(min = 200.dp),
+
+                                                    contentScale = ContentScale.Fit,
+                                                    alignment = Alignment.TopStart
+                                                )
+                                            }
+                                        } ?: Text("Sin imagen")
+                                    }
+
+                                    MediaType.AUDIO -> {
+                                        Text("Audio: ${block.content ?: "Sin audio"}")
+                                        // Luego aquí agregamos exoplayer de audio si quieres
+                                    }
+
+                                    MediaType.VIDEO -> {
+                                        Text("Video: ${block.content ?: "Sin video"}")
+                                        // Luego metemos ExoPlayer
+                                    }
+                                }
+
+                                val descriptionModifier =
+                                    if (block.type == MediaType.TEXT) {
+                                        Modifier.fillMaxWidth()
+                                    } else {
+                                        Modifier
+                                            .fillMaxWidth(0.9f)
+                                            .padding(start = 30.dp)
+                                    }
+
+                                TextField(
+                                    value = block.description ?: "",
+                                    onValueChange = { newValue ->
+                                        var description = newValue
+                                        viewModel.updateBlockDescription(block.id, newValue)
+                                    },
+                                    modifier = descriptionModifier,
+                                    placeholder = { Text("") },
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        disabledContainerColor = Color.Transparent,
+                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedIndicatorColor = Color.Gray
+                                    )
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
+                                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                                }
                             }
                         }
                     }
+
                 }
                 Spacer(Modifier.height(16.dp))
 
@@ -467,6 +474,8 @@ fun AddEditScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+
+
     }
 
 

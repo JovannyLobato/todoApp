@@ -271,7 +271,7 @@ fun MainScreen(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(50.dp))
         val all =  stringResource(id = R.string.all)
         val notesString = stringResource(id = R.string.notes)
         val tasks = stringResource(id = R.string.tasks)
@@ -286,13 +286,14 @@ fun MainScreen(
                 }
             ) { noteWithDetails ->
                 val note = noteWithDetails.note
-
+                val nChars=50
                 // Obtiene el primer bloque de texto e imagen si existen (para mostrar algo en la lista)
-                val firstText = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.TEXT }?.content ?: ""
+                val firstText = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.TEXT }
+                    ?.description?.take(nChars) ?: ""
                 val firstImageUri = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.IMAGE }?.content
 
                 NoteItem(
-                    title = note.title,
+                    title = if (note.title != "") note.title else stringResource(R.string.no_tittle),
                     description = firstText,
                     imageUri = firstImageUri,
                     isTask = note.isTask,
