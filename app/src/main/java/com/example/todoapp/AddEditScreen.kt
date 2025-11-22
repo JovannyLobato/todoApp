@@ -78,11 +78,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import com.example.todoapp.model.MediaBlock
-
+import androidx.compose.ui.text.TextStyle as textstyle
 import java.io.File
+import java.time.format.TextStyle
 
 @Composable
 fun formatTimestamp(timestamp: Long?): String {
@@ -225,12 +228,30 @@ fun AddEditScreen(
             TextField(
                 value = uiState.title,
                 onValueChange = { viewModel.onTitleChange(it) },
+                maxLines = 3,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    errorContainerColor = Color.Transparent,
+
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp)
                     .padding(top = 30.dp)
                     .background(Color.Transparent),
-                maxLines = 2,
+                placeholder = {
+                    Text(text = "Escribe un titulo")
+                              },
+                textStyle = textstyle(
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
             )
         }
     ) { padding ->
