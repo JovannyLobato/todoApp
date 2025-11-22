@@ -146,11 +146,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
-    fun deleteNote(note: Note) {
-        viewModelScope.launch {
-            repository.deleteNote(note)
-        }
-    }
+
 
     // guarda la descripcion:
     fun updateBlockDescription(blockId: Int, newDescription: String) {
@@ -165,6 +161,12 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
+
+    fun deleteNoteWithDetails(noteId: Int) {
+        viewModelScope.launch {
+            repository.deleteNoteWithDetails(noteId)
+        }
+    }
 
 
 

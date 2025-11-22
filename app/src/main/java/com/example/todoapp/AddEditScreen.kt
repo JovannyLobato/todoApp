@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,6 +65,7 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.unit.dp
@@ -151,7 +153,7 @@ fun AddEditScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Estado para mostrar el bottom sheet / cámara
     var showImageSheet by remember { mutableStateOf(false) }
@@ -433,14 +435,65 @@ fun AddEditScreen(
                     .padding(padding)
                     .imePadding()     // hace que el contenido suba cuando aparece el teclado
             ) {
-                IconButton(
-                    onClick = { navController.popBackStack() },
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Salir",
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
+                        .size(48.dp)
+                        .combinedClickable(
+                            onClick = { navController.popBackStack() },
+                            onLongClick = { showDeleteDialog = true }
+                        )
+                        .background(Color.Transparent, shape = CircleShape)
+                        .padding(8.dp)
+                )
+                /*
+                IconButton(
+                    onClick = {
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                        .combinedClickable(
+                            onLongClick = {
+                                showDeleteDialog = true
+                            },
+                            onClick = {
+                                navController.popBackStack()
+                            }
+                        )
+
                 ) {
                     Icon(Icons.Default.Close, contentDescription = "Salir")
                 }
+                */
+                if (showDeleteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteDialog = false },
+                        title = { Text("Eliminar nota") },
+                        text = { Text("¿Seguro que quieres eliminar esta nota y todos sus contenidos?") },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    viewModel.deleteNoteWithDetails(noteId)
+                                    showDeleteDialog = false
+                                    navController.popBackStack()
+                                }
+                            ) {
+                                Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDeleteDialog = false }) {
+                                Text("Cancelar")
+                            }
+                        }
+                    )
+                }
+
 
                 IconButton(
                     onClick = {

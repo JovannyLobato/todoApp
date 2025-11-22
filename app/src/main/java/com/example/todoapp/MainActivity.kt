@@ -203,7 +203,8 @@ fun MainScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(18.dp)
+            .padding(horizontal = 15.dp)
+            .padding(top = 10.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         Row(
@@ -255,7 +256,7 @@ fun MainScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Row {
             listOf(stringResource(id = R.string.all), stringResource(id = R.string.notes),
                 stringResource(id = R.string.tasks)).forEach { option ->
@@ -271,7 +272,7 @@ fun MainScreen(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(50.dp))
+        Spacer(modifier = Modifier.height(5.dp))
         val all =  stringResource(id = R.string.all)
         val notesString = stringResource(id = R.string.notes)
         val tasks = stringResource(id = R.string.tasks)

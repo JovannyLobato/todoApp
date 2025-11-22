@@ -35,6 +35,12 @@ class NoteRepository(private val noteDao: NoteDao) {
         noteDao.deleteNote(note)
     }
 
+    suspend fun deleteNoteWithDetails(noteId: Int) {
+        noteDao.deleteNoteCompletely(noteId)
+    }
+
+
+
     suspend fun getNoteWithDetails(id: Int): NoteWithDetails? {
         return noteDao.getNoteWithDetails(id)
     }
