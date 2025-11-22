@@ -85,12 +85,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         _uiState.value = _uiState.value.copy(mediaBlocks = updatedList)
     }
 
-    fun removeMediaBlock(index: Int) {
+    fun removeMediaBlock(blockId: Int) {
         _uiState.update { current ->
             current.copy(
-                mediaBlocks = current.mediaBlocks.toMutableList().apply {
-                    removeAt(index)
-                }
+                mediaBlocks = current.mediaBlocks.filter { it.id != blockId }
             )
         }
     }

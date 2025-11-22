@@ -80,6 +80,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
+import com.example.todoapp.model.MediaBlock
 
 import java.io.File
 
@@ -154,6 +155,8 @@ fun AddEditScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showBlockMediaDeleteDialog by remember { mutableStateOf(false)}
+    var blockToDelete by remember { mutableStateOf<MediaBlock?>(null) }
 
     // Estado para mostrar el bottom sheet / cámara
     var showImageSheet by remember { mutableStateOf(false) }
@@ -294,7 +297,12 @@ fun AddEditScreen(
                                 .padding(
                                     horizontal = 0.dp
                                 )
-
+                                .combinedClickable(
+                                    onClick = {},
+                                    onLongClick = {
+                                        blockToDelete = block
+                                        showBlockMediaDeleteDialog = true }
+                                )
                                 .fillMaxWidth(),
 
                             shape = RectangleShape,
@@ -372,15 +380,16 @@ fun AddEditScreen(
                                         unfocusedIndicatorColor = Color.Gray
                                     )
                                 )
-                                Spacer(Modifier.height(4.dp))
-                                TextButton(onClick = { viewModel.removeMediaBlock(index) }) {
-                                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                                TextButton(onClick = { /*viewModel.removeMediaBlock(index) */},
+                                    modifier = Modifier.height(1.dp)) {
+                                    Text("", color = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
                     }
-
                 }
+
+
                 Spacer(Modifier.height(16.dp))
 
                 Row(
@@ -425,8 +434,28 @@ fun AddEditScreen(
                         Icon(Icons.Filled.Videocam, contentDescription = "Agregar video")
                     }
                 }
-
-                Spacer(Modifier.height(70.dp))
+            }
+            if (showBlockMediaDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showBlockMediaDeleteDialog = false },
+                    title = { Text("Eliminar Item") },
+                    text = { Text("¿Seguro que quieres eliminar este contenido?") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.removeMediaBlock(blockToDelete!!.id)
+                                showBlockMediaDeleteDialog = false
+                            }
+                        ) {
+                            Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showBlockMediaDeleteDialog = false }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
             }
 
             Box(
@@ -449,27 +478,7 @@ fun AddEditScreen(
                         .background(Color.Transparent, shape = CircleShape)
                         .padding(8.dp)
                 )
-                /*
-                IconButton(
-                    onClick = {
-                        navController.popBackStack()
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp)
-                        .combinedClickable(
-                            onLongClick = {
-                                showDeleteDialog = true
-                            },
-                            onClick = {
-                                navController.popBackStack()
-                            }
-                        )
 
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Salir")
-                }
-                */
                 if (showDeleteDialog) {
                     AlertDialog(
                         onDismissRequest = { showDeleteDialog = false },

@@ -276,7 +276,7 @@ fun MainScreen(
         val all =  stringResource(id = R.string.all)
         val notesString = stringResource(id = R.string.notes)
         val tasks = stringResource(id = R.string.tasks)
-        LazyColumn {
+        LazyColumn (modifier = Modifier.padding(bottom = 10.dp)){
             items(
                 notesWithDetails.filter { noteWithDetails ->
                     val note = noteWithDetails.note
@@ -309,7 +309,9 @@ fun MainScreen(
                 )
             }
         }
+
     }
+
 }
 
 
