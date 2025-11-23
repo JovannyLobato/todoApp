@@ -174,7 +174,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 title = noteWithDetails.note.title,
                 isTask = noteWithDetails.note.isTask,
                 dueDateTimestamp = noteWithDetails.note.dueDateTimestamp,
-                mediaBlocks = noteWithDetails.mediaBlocks.toMutableList(),
+                mediaBlocks = noteWithDetails.mediaBlocks.toMutableList().sortedBy { it.order } ,
                 reminders = noteWithDetails.reminders.toMutableList()
             )
         }

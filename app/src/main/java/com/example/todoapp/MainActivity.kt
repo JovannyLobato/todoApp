@@ -286,12 +286,14 @@ fun MainScreen(
                             note.title.contains(searchQuery, ignoreCase = true)
                 }
             ) { noteWithDetails ->
+                // ORDENAR AQUÍ
+                val orderedBlocks = noteWithDetails.mediaBlocks.sortedBy { it.order }
                 val note = noteWithDetails.note
                 val nChars=50
                 // Obtiene el primer bloque de texto e imagen si existen (para mostrar algo en la lista)
-                val firstText = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.TEXT }
+                val firstText = orderedBlocks.firstOrNull { it.type == MediaType.TEXT }
                     ?.description?.take(nChars) ?: ""
-                val firstImageUri = noteWithDetails.mediaBlocks.firstOrNull { it.type == MediaType.IMAGE }?.content
+                val firstImageUri = orderedBlocks.firstOrNull { it.type == MediaType.IMAGE }?.content
 
                 NoteItem(
                     title = if (note.title != "") note.title else stringResource(R.string.no_tittle),
