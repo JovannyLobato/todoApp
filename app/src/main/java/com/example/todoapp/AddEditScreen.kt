@@ -6,7 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -74,10 +76,14 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -160,6 +166,10 @@ fun AddEditScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBlockMediaDeleteDialog by remember { mutableStateOf(false)}
     var blockToDelete by remember { mutableStateOf<MediaBlock?>(null) }
+    var showFullImage by remember { mutableStateOf(false) }
+    var fullImageUri by remember { mutableStateOf<String?>(null) }
+    val focusManager = LocalFocusManager.current
+
 
     // Estado para mostrar el bottom sheet / cámara
     var showImageSheet by remember { mutableStateOf(false) }
@@ -223,7 +233,11 @@ fun AddEditScreen(
         contentWindowInsets = WindowInsets(0),
         containerColor = Color.Transparent,
         modifier = Modifier
-            .padding(top = 10.dp),
+            .padding(top = 10.dp)
+            .let {
+                if (showFullImage) it.clickable(enabled = false) {}
+                else it
+            },
         topBar = {
             TextField(
                 value = uiState.title,
@@ -245,6 +259,7 @@ fun AddEditScreen(
                     .padding(horizontal = 10.dp)
                     .padding(top = 30.dp)
                     .background(Color.Transparent),
+
                 placeholder = {
                     Text(text = "Escribe un titulo")
                               },
@@ -356,8 +371,12 @@ fun AddEditScreen(
                                                     contentDescription = "Imagen",
                                                     modifier = Modifier
                                                         .width(250.dp)
-                                                        .heightIn(min = 200.dp),
-
+                                                        .heightIn(min = 200.dp)
+                                                        .clickable {
+                                                            focusManager.clearFocus()
+                                                            fullImageUri = uri
+                                                            showFullImage = true
+                                                        },
                                                     contentScale = ContentScale.Fit,
                                                     alignment = Alignment.TopStart
                                                 )
@@ -381,7 +400,7 @@ fun AddEditScreen(
                                         Modifier.fillMaxWidth()
                                     } else {
                                         Modifier
-                                            .fillMaxWidth(0.9f)
+                                            .fillMaxWidth()
                                             .padding(start = 30.dp)
                                     }
 
@@ -409,6 +428,7 @@ fun AddEditScreen(
                         }
                     }
                 }
+
 
 
                 Spacer(Modifier.height(16.dp))
@@ -456,6 +476,8 @@ fun AddEditScreen(
                     }
                 }
             }
+
+
             if (showBlockMediaDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showBlockMediaDeleteDialog = false },
@@ -561,7 +583,63 @@ fun AddEditScreen(
 
     }
 
+    if (showFullImage && fullImageUri != null) {
+        FullScreenImageViewer(
+            imageUri = fullImageUri!!,
+            onClose = { showFullImage = false },
+        )
+    }
+
 
 }
 
 
+@Composable
+fun FullScreenImageViewer(
+    imageUri: String,
+    onClose: () -> Unit
+) {
+    // Estados para zoom y desplazamiento
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, gestureZoom, _ ->
+                    scale = (scale * gestureZoom).coerceIn(1f, 5f)
+                    offset += pan
+                }
+            }
+            // cierre con un toque
+            .clickable { onClose() }
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(imageUri),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .graphicsLayer(
+                    scaleX = scale,
+                    scaleY = scale,
+                    translationX = offset.x,
+                    translationY = offset.y
+                ),
+            contentScale = ContentScale.Fit
+        )
+
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Cerrar",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(vertical = 50.dp)
+                .padding(horizontal = 20.dp)
+                .size(35.dp)
+                .clickable { onClose() }
+        )
+    }
+}
