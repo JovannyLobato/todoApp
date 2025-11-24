@@ -118,7 +118,7 @@ fun ImagePickerSheet(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text("Agregar imagen", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(id = R.string.add_image), style = MaterialTheme.typography.titleMedium)
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -131,7 +131,7 @@ fun ImagePickerSheet(
             ) {
                 Icon(Icons.Default.PhotoCamera, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Tomar foto")
+                Text(stringResource(id = R.string.take_photo))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -145,7 +145,7 @@ fun ImagePickerSheet(
             ) {
                 Icon(Icons.Default.PhotoLibrary, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Elegir desde galería")
+                Text(stringResource(id = R.string.choose_from_gallery))
             }
         }
     }
@@ -261,8 +261,8 @@ fun AddEditScreen(
                     .background(Color.Transparent),
 
                 placeholder = {
-                    Text(text = "Escribe un titulo")
-                              },
+                    Text(text = stringResource(id = R.string.write_a_title_placeholder))
+                },
                 textStyle = textstyle(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
@@ -279,7 +279,7 @@ fun AddEditScreen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    Text("Agregar imagen", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(id = R.string.add_image), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
@@ -291,7 +291,7 @@ fun AddEditScreen(
                     ) {
                         Icon(Icons.Default.PhotoCamera, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Tomar foto")
+                        Text(stringResource(id = R.string.take_photo))
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -305,7 +305,7 @@ fun AddEditScreen(
                     ) {
                         Icon(Icons.Default.PhotoLibrary, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Elegir desde galería")
+                        Text(stringResource(id = R.string.choose_from_gallery))
                     }
                 }
             }
@@ -324,7 +324,7 @@ fun AddEditScreen(
             ) {
                 // Spacer(Modifier.height(12.dp))
 
-                // Text("Contenido:")
+                // Text("Contenido:") // Removed hardcoded text
                 uiState.mediaBlocks.forEachIndexed { index, block ->
                     key(block.id) {
                         val description = block.description ?: ""
@@ -368,7 +368,7 @@ fun AddEditScreen(
                                             ) {
                                                 Image(
                                                     painter = rememberAsyncImagePainter(uri),
-                                                    contentDescription = "Imagen",
+                                                    contentDescription = stringResource(id = R.string.add_image_desc),
                                                     modifier = Modifier
                                                         .width(250.dp)
                                                         .heightIn(min = 200.dp)
@@ -381,16 +381,16 @@ fun AddEditScreen(
                                                     alignment = Alignment.TopStart
                                                 )
                                             }
-                                        } ?: Text("Sin imagen")
+                                        } ?: Text(stringResource(id = R.string.select_an_image))
                                     }
 
                                     MediaType.AUDIO -> {
-                                        Text("Audio: ${block.content ?: "Sin audio"}")
+                                        Text(stringResource(id = R.string.add_audio) + ": ${block.content ?: stringResource(id = R.string.add_audio)}")
                                         // Luego aquí agregamos exoplayer de audio si quieres
                                     }
 
                                     MediaType.VIDEO -> {
-                                        Text("Video: ${block.content ?: "Sin video"}")
+                                        Text(stringResource(id = R.string.add_video) + ": ${block.content ?: stringResource(id = R.string.add_video)}")
                                         // Luego metemos ExoPlayer
                                     }
                                 }
@@ -438,7 +438,7 @@ fun AddEditScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("¿Es una tarea?")
+                    Text(stringResource(id = R.string.is_a_taskq))
                     Switch(
                         checked = uiState.isTask,
                         onCheckedChange = { viewModel.onIsTaskChange(it) }
@@ -450,9 +450,9 @@ fun AddEditScreen(
                     Button(onClick = { viewModel.setShowDatePicker(true) }) {
                         Text(
                             if (uiState.dueDateTimestamp == null)
-                                "Seleccionar fecha límite"
+                                stringResource(id = R.string.select_due_date)
                             else
-                                "Fecha: ${formatTimestamp(uiState.dueDateTimestamp)}"
+                                stringResource(id = R.string.date_label) + " ${formatTimestamp(uiState.dueDateTimestamp)}"
                         )
                     }
                 }
@@ -463,16 +463,16 @@ fun AddEditScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
-                        Icon(Icons.Filled.Description, contentDescription = "Agregar texto")
+                        Icon(Icons.Filled.Description, contentDescription = stringResource(id = R.string.add_text))
                     }
                     Button(onClick = { showImageSheet = true }) {
-                        Icon(Icons.Filled.Image, contentDescription = "Agregar imagen")
+                        Icon(Icons.Filled.Image, contentDescription = stringResource(id = R.string.add_image_desc))
                     }
                     Button(onClick = { viewModel.addMediaBlock(MediaType.AUDIO, "uri_de_audio") }) {
-                        Icon(Icons.Filled.Audiotrack, contentDescription = "Agregar audio")
+                        Icon(Icons.Filled.Audiotrack, contentDescription = stringResource(id = R.string.add_audio))
                     }
                     Button(onClick = { viewModel.addMediaBlock(MediaType.VIDEO, "uri_de_video") }) {
-                        Icon(Icons.Filled.Videocam, contentDescription = "Agregar video")
+                        Icon(Icons.Filled.Videocam, contentDescription = stringResource(id = R.string.add_video))
                     }
                 }
             }
@@ -481,8 +481,8 @@ fun AddEditScreen(
             if (showBlockMediaDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showBlockMediaDeleteDialog = false },
-                    title = { Text("Eliminar Item") },
-                    text = { Text("¿Seguro que quieres eliminar este contenido?") },
+                    title = { Text(stringResource(id = R.string.delete_item)) },
+                    text = { Text(stringResource(id = R.string.confirm_delete_content)) },
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -490,12 +490,12 @@ fun AddEditScreen(
                                 showBlockMediaDeleteDialog = false
                             }
                         ) {
-                            Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(id = R.string.delete), color = MaterialTheme.colorScheme.error)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showBlockMediaDeleteDialog = false }) {
-                            Text("Cancelar")
+                            Text(stringResource(id = R.string.cancel))
                         }
                     }
                 )
@@ -505,11 +505,11 @@ fun AddEditScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .imePadding()     // hace que el contenido suba cuando aparece el teclado
+                    .imePadding()
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Salir",
+                    contentDescription = stringResource(id = R.string.exit),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
@@ -525,8 +525,8 @@ fun AddEditScreen(
                 if (showDeleteDialog) {
                     AlertDialog(
                         onDismissRequest = { showDeleteDialog = false },
-                        title = { Text("Eliminar nota") },
-                        text = { Text("¿Seguro que quieres eliminar esta nota y todos sus contenidos?") },
+                        title = { Text(stringResource(id = R.string.delete_note)) },
+                        text = { Text(stringResource(id = R.string.confirm_delete_note)) },
                         confirmButton = {
                             TextButton(
                                 onClick = {
@@ -535,12 +535,12 @@ fun AddEditScreen(
                                     navController.popBackStack()
                                 }
                             ) {
-                                Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(id = R.string.delete), color = MaterialTheme.colorScheme.error)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showDeleteDialog = false }) {
-                                Text("Cancelar")
+                                Text(stringResource(id = R.string.cancel))
                             }
                         }
                     )
@@ -556,7 +556,7 @@ fun AddEditScreen(
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = "Guardar")
+                    Icon(Icons.Default.Save, contentDescription = stringResource(id = R.string.save_note))
                 }
             }
 
@@ -574,7 +574,7 @@ fun AddEditScreen(
                         viewModel.onDueDateChange(it)
                     }
                     viewModel.setShowDatePicker(false)
-                }) { Text("Aceptar") }
+                }) { Text(stringResource(id = R.string.accept)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -632,7 +632,7 @@ fun FullScreenImageViewer(
 
         Icon(
             imageVector = Icons.Default.Close,
-            contentDescription = "Cerrar",
+            contentDescription = stringResource(id = R.string.close),
             tint = Color.White,
             modifier = Modifier
                 .align(Alignment.TopEnd)

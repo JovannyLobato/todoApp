@@ -27,5 +27,25 @@
     <string name="select_a_note_for_edit">Select a note for edit</string>
     <string name="no_tittle">no tittle</string>
 
+    <string name="add_image">Add image</string>
+    <string name="take_photo">Take photo</string>
+    <string name="choose_from_gallery">Choose from gallery</string>
+    <string name="write_a_title_placeholder">Write a title</string>
+    <string name="delete_item">Delete item</string>
+    <string name="confirm_delete_content">Are you sure you want to delete this content?</string>
+    <string name="delete">Delete</string>
+    <string name="add_text">Add text</string>
+    <string name="add_image_desc">Add image</string>
+    <string name="add_audio">Add audio</string>
+    <string name="add_video">Add video</string>
+    <string name="exit">Exit</string>
+    <string name="save_note">Save note</string>
+    <string name="delete_note">Delete note</string>
+    <string name="confirm_delete_note">Are you sure you want to delete this note and all its contents?</string>
+    <string name="accept">Accept</string>
+    <string name="close">Close</string>
+    <string name="select_due_date">Select due date</string>
+    <string name="date_label">Date:</string>
+
 
 </resources>

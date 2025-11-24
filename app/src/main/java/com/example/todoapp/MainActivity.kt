@@ -257,6 +257,10 @@ fun MainScreen(
         }
 
         Spacer(modifier = Modifier.height(6.dp))
+
+        val all = stringResource(id = R.string.all)
+        val notesString = stringResource(id = R.string.notes)
+        val tasks = stringResource(id = R.string.tasks)
         Row {
             listOf(stringResource(id = R.string.all), stringResource(id = R.string.notes),
                 stringResource(id = R.string.tasks)).forEach { option ->
@@ -273,9 +277,6 @@ fun MainScreen(
             }
         }
         Spacer(modifier = Modifier.height(5.dp))
-        val all =  stringResource(id = R.string.all)
-        val notesString = stringResource(id = R.string.notes)
-        val tasks = stringResource(id = R.string.tasks)
         LazyColumn (modifier = Modifier.padding(bottom = 10.dp)){
             items(
                 notesWithDetails.filter { noteWithDetails ->
