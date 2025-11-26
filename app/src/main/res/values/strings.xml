@@ -46,6 +46,8 @@
     <string name="close">Close</string>
     <string name="select_due_date">Select due date</string>
     <string name="date_label">Date:</string>
+    <string name="delete_reminder">Delete Reminder</string>
+    <string name="add_reminder">Add Reminder</string>
 
 
 </resources>

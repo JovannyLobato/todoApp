@@ -47,6 +47,29 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         _uiState.value = _uiState.value.copy(showDatePicker = show)
     }
 
+    // ======== Manejo de Recordatorios ========
+    fun addReminder(reminderTime: Long) {
+        val newReminder = Reminder(
+            id = 0,
+            noteId = 0,
+            reminderTime = reminderTime
+        )
+
+        _uiState.update { current ->
+            current.copy(
+                reminders = current.reminders + newReminder
+            )
+        }
+    }
+
+    fun removeReminder(reminder: Reminder) {
+        _uiState.update { current ->
+            current.copy(
+                reminders = current.reminders.filter { it != reminder }
+            )
+        }
+    }
+
     // ======== Manejo de bloques de contenido ========
     fun addMediaBlock(
         type: MediaType,

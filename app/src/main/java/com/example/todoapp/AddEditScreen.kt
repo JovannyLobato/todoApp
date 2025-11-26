@@ -62,8 +62,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Videocam
-
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
@@ -92,7 +90,25 @@ import com.example.todoapp.model.MediaBlock
 import androidx.compose.ui.text.TextStyle as textstyle
 import java.io.File
 import java.time.format.TextStyle
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.Calendar
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.ui.window.Dialog
 
+
+fun combineDateWithTime(dateTimestamp: Long, hour: Int, minute: Int): Long {
+    val date = Date(dateTimestamp)
+    val calendar = Calendar.getInstance().apply {
+        time = date
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return calendar.timeInMillis
+}
 @Composable
 fun formatTimestamp(timestamp: Long?): String {
     return if (timestamp != null && timestamp > 0) {
@@ -165,6 +181,7 @@ fun AddEditScreen(
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBlockMediaDeleteDialog by remember { mutableStateOf(false)}
+    var showTimePicker by remember { mutableStateOf(false) }
     var blockToDelete by remember { mutableStateOf<MediaBlock?>(null) }
     var showFullImage by remember { mutableStateOf(false) }
     var fullImageUri by remember { mutableStateOf<String?>(null) }
@@ -455,6 +472,30 @@ fun AddEditScreen(
                                 stringResource(id = R.string.date_label) + " ${formatTimestamp(uiState.dueDateTimestamp)}"
                         )
                     }
+                    if (uiState.dueDateTimestamp != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = { showTimePicker = true }) {
+                            Text(stringResource(id = R.string.add_reminder))
+                        }
+                    }
+                    uiState.reminders.sortedBy { it.reminderTime }.forEach { reminder ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Recordatorio: ${formatTimestamp(reminder.reminderTime)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { viewModel.removeReminder(reminder) }) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.delete_reminder))
+                            }
+                        }
+                    }
+
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -579,8 +620,65 @@ fun AddEditScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+    if (showTimePicker && uiState.dueDateTimestamp != null) {
+        val timePickerState = rememberTimePickerState()
+        val dateTimestamp = uiState.dueDateTimestamp
 
-
+        TimePickerDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Selecciona la hora del recordatorio") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val combinedTimestamp = combineDateWithTime(
+                            dateTimestamp!!,
+                            timePickerState.hour,
+                            timePickerState.minute
+                        )
+                        viewModel.addReminder(combinedTimestamp)
+                        showTimePicker = false
+                    }
+                ) { Text(stringResource(id = R.string.accept)) }
+            }
+        ) {
+            TimePicker(state = timePickerState)
+        }
+    }
+    // NUEVO: Componente para mostrar el TimePickerDialog
+    @Composable
+    fun TimePickerDialog(
+        onDismissRequest: () -> Unit,
+        confirmButton: @Composable (() -> Unit),
+        content: @Composable () -> Unit,
+    ) {
+        Dialog(onDismissRequest = onDismissRequest) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .width(IntrinsicSize.Min)
+                    .background(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surface
+                    ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    content()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        confirmButton()
+                    }
+                }
+            }
+        }
     }
 
     if (showFullImage && fullImageUri != null) {
