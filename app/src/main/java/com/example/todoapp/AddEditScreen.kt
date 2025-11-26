@@ -109,11 +109,24 @@ fun combineDateWithTime(dateTimestamp: Long, hour: Int, minute: Int): Long {
     }
     return calendar.timeInMillis
 }
+// AddEditScreen.kt
+
 @Composable
 fun formatTimestamp(timestamp: Long?): String {
     return if (timestamp != null && timestamp > 0) {
         val date = Date(timestamp)
-        SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(date)
+        val calendar = Calendar.getInstance().apply { time = date }
+        val isMidnight = calendar.get(Calendar.HOUR_OF_DAY) == 0 &&
+                calendar.get(Calendar.MINUTE) == 0 &&
+                calendar.get(Calendar.SECOND) == 0
+
+        val dateFormat = if (isMidnight) {
+            SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) // Sin hora
+        } else {
+            SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) // Con hora
+        }
+
+        dateFormat.format(date)
     } else {
         stringResource(id = R.string.select_a_date_and_time_for_the_task )
     }
@@ -182,6 +195,8 @@ fun AddEditScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBlockMediaDeleteDialog by remember { mutableStateOf(false)}
     var showTimePicker by remember { mutableStateOf(false) }
+    var showReminderDatePicker by remember { mutableStateOf(false) }
+    var reminderBaseDateMillis by remember { mutableStateOf<Long?>(null) }
     var blockToDelete by remember { mutableStateOf<MediaBlock?>(null) }
     var showFullImage by remember { mutableStateOf(false) }
     var fullImageUri by remember { mutableStateOf<String?>(null) }
@@ -344,7 +359,7 @@ fun AddEditScreen(
                 // Text("Contenido:") // Removed hardcoded text
                 uiState.mediaBlocks.forEachIndexed { index, block ->
                     key(block.id) {
-                        val description = block.description ?: ""
+                        val     description = block.description ?: ""
                         Card(
                             modifier = Modifier
                                 .padding(
@@ -469,35 +484,39 @@ fun AddEditScreen(
                             if (uiState.dueDateTimestamp == null)
                                 stringResource(id = R.string.select_due_date)
                             else
-                                stringResource(id = R.string.date_label) + " ${formatTimestamp(uiState.dueDateTimestamp)}"
+                                stringResource(id = R.string.date_label) + " ${
+                                    formatTimestamp(
+                                        uiState.dueDateTimestamp
+                                    )
+                                }"
                         )
                     }
-                    if (uiState.dueDateTimestamp != null) {
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = { showTimePicker = true }) {
-                            Text(stringResource(id = R.string.add_reminder))
-                        }
-                    }
-                    uiState.reminders.sortedBy { it.reminderTime }.forEach { reminder ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Recordatorio: ${formatTimestamp(reminder.reminderTime)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(onClick = { viewModel.removeReminder(reminder) }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.delete_reminder))
-                            }
-                        }
-                    }
-
                 }
 
+                Button(onClick = {
+                    showReminderDatePicker = true
+                    reminderBaseDateMillis = uiState.dueDateTimestamp
+                }) {
+                    Text(stringResource(id = R.string.add_reminder))
+                }
+
+                uiState.reminders.sortedBy { it.reminderTime }.forEach { reminder ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Recordatorio: ${formatTimestamp(reminder.reminderTime)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { viewModel.removeReminder(reminder) }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.delete_reminder))
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Row(
                     Modifier.fillMaxWidth(),
@@ -610,34 +629,95 @@ fun AddEditScreen(
         DatePickerDialog(
             onDismissRequest = { viewModel.setShowDatePicker(false) },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        viewModel.onDueDateChange(it)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = { viewModel.setShowDatePicker(false) }) {
+                        Text(stringResource(id = R.string.cancel))
                     }
-                    viewModel.setShowDatePicker(false)
-                }) { Text(stringResource(id = R.string.accept)) }
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { dateMillis ->
+                            val calendar = Calendar.getInstance().apply {
+                                timeInMillis = dateMillis
+
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
+
+                            viewModel.onDueDateChange(calendar.timeInMillis)
+                            viewModel.setShowDatePicker(false)
+                            showTimePicker = true
+                        }
+                    }) {
+                        Text(stringResource(id = R.string.next))
+                    }
+                }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
-    if (showTimePicker && uiState.dueDateTimestamp != null) {
+    @OptIn(ExperimentalMaterial3Api::class)
+    if (showReminderDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            // Opcional: Si quieres que el picker se abra en la fecha de vencimiento de la tarea.
+            initialSelectedDateMillis = uiState.dueDateTimestamp
+        )
+        DatePickerDialog(
+            onDismissRequest = { showReminderDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { dateMillis ->
+                        // Guardar solo la fecha a medianoche (00:00:00) como base para el TimePicker.
+                        val calendar = Calendar.getInstance().apply {
+                            timeInMillis = dateMillis
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        reminderBaseDateMillis = calendar.timeInMillis // Almacenar la fecha seleccionada
+                        showReminderDatePicker = false
+                        showTimePicker = true
+                    }
+                }) { Text(stringResource(id = R.string.next)) }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+    @OptIn(ExperimentalMaterial3Api::class)
+    if (showTimePicker) {
         val timePickerState = rememberTimePickerState()
-        val dateTimestamp = uiState.dueDateTimestamp
+
+        // 1. Obtener la fecha base: Siempre debe haber sido establecida al abrir showTimePicker.
+        val baseDateTimestamp = reminderBaseDateMillis ?: Calendar.getInstance().timeInMillis
 
         TimePickerDialog(
-            onDismissRequest = { showTimePicker = false },
+            onDismissRequest = {
+                showTimePicker = false
+                reminderBaseDateMillis = null // Limpiar el estado al cerrar
+            },
             title = { Text("Selecciona la hora del recordatorio") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         val combinedTimestamp = combineDateWithTime(
-                            dateTimestamp!!,
+                            baseDateTimestamp,
                             timePickerState.hour,
                             timePickerState.minute
                         )
+
+                        if (uiState.isTask && uiState.dueDateTimestamp == baseDateTimestamp) {
+                            viewModel.onDueDateChange(combinedTimestamp)
+                        }
+
                         viewModel.addReminder(combinedTimestamp)
                         showTimePicker = false
+                        reminderBaseDateMillis = null // Limpiar el estado
                     }
                 ) { Text(stringResource(id = R.string.accept)) }
             }
@@ -645,7 +725,6 @@ fun AddEditScreen(
             TimePicker(state = timePickerState)
         }
     }
-    // NUEVO: Componente para mostrar el TimePickerDialog
     @Composable
     fun TimePickerDialog(
         onDismissRequest: () -> Unit,

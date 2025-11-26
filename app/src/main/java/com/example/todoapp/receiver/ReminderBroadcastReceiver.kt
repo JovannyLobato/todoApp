@@ -1,11 +1,11 @@
-package com.example.todoapp.receivers
+package com.example.todoapp.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 
-class AlarmasReceiver : BroadcastReceiver() {
+class ReminderBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         Log.d(  "logMsgAlarmasReceiver", "ya paso por alamras")
 

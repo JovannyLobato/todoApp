@@ -48,6 +48,7 @@
     <string name="date_label">Date:</string>
     <string name="delete_reminder">Delete Reminder</string>
     <string name="add_reminder">Add Reminder</string>
+    <string name="next">Next</string>
 
 
 </resources>

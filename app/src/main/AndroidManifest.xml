@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
     <!-- agregar record audio -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32"/>
 
     <application
         android:name=".TodoApplication"
@@ -23,7 +24,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-        <receiver android:name=".receivers.AlarmasReceiver">
+        <receiver android:name=".receiver.ReminderBroadcastReceiver">
 
         </receiver>
         <activity
@@ -37,6 +38,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver android:name=".receiver.ReminderBroadcastReceiver" android:enabled="true"/>
     </application>
 
 </manifest>

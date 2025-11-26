@@ -1,11 +1,5 @@
 package com.example.todoapp
 
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.os.SystemClock
-import com.example.todoapp.receivers.AlarmasReceiver
 import org.threeten.bp.LocalDateTime
 
 data class AlarmItem(

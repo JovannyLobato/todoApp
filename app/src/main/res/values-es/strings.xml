@@ -47,5 +47,6 @@
     <string name="date_label">Fecha:</string>
     <string name="delete_reminder">Borrar Recordatorio</string>
     <string name="add_reminder">Agregar Recordatorio</string>
+    <string name="next">Next</string>
 
 </resources>
