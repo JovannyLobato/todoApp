@@ -201,6 +201,7 @@ fun AddEditScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     var showReminderDatePicker by remember { mutableStateOf(false) }
     var reminderBaseDateMillis by remember { mutableStateOf<Long?>(null) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
     var blockToDelete by remember { mutableStateOf<MediaBlock?>(null) }
     var showFullImage by remember { mutableStateOf(false) }
     var fullImageUri by remember { mutableStateOf<String?>(null) }
@@ -498,8 +499,27 @@ fun AddEditScreen(
                 }
 
                 Button(onClick = {
-                    showReminderDatePicker = true
-                    reminderBaseDateMillis = uiState.dueDateTimestamp
+                    //  Verificacion de la version de Android
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        // Verificacion del permiso (Lo tiene o no9
+                        val hasPermission = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (hasPermission) {
+                            // Si tiene el permiso
+                            showReminderDatePicker = true
+                            reminderBaseDateMillis = uiState.dueDateTimestamp
+                        } else {
+                            // Si no tiene el permiso mostramos el mensaje
+                            showPermissionDeniedDialog = true
+                        }
+                    } else {
+                        // Android < V13: No necesita permiso en tiempo de ejecución
+                        showReminderDatePicker = true
+                        reminderBaseDateMillis = uiState.dueDateTimestamp
+                    }
                 }) {
                     Text(stringResource(id = R.string.add_reminder))
                 }
@@ -559,6 +579,34 @@ fun AddEditScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showBlockMediaDeleteDialog = false }) {
+                            Text(stringResource(id = R.string.cancel))
+                        }
+                    }
+                )
+            }
+
+            if (showPermissionDeniedDialog) {
+                AlertDialog(
+                    onDismissRequest = { showPermissionDeniedDialog = false },
+                    title = { Text("Permiso requerido") },
+                    text = {
+                        Text("Necesitas permitir las notificaciones para crear recordatorios. Por favor, habilítalas en la configuración.")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showPermissionDeniedDialog = false
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            }
+                        ) {
+                            Text("Ir a Configuración")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPermissionDeniedDialog = false }) {
                             Text(stringResource(id = R.string.cancel))
                         }
                     }
