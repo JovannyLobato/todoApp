@@ -1,50 +1,36 @@
 package com.example.todoapp
 
+import android.Manifest
+import android.app.AlertDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.* // Importa todos los layout
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.*
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -57,38 +43,88 @@ import com.example.todoapp.model.Note
 import com.example.todoapp.ui.theme.TodoappTheme
 import com.example.todoapp.viewmodel.NoteViewModel
 
-
 class MainActivity : ComponentActivity() {
+
+    private var hasShownRationale = false
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(this, "Notificaciones activadas", Toast.LENGTH_SHORT).show()
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.POST_NOTIFICATIONS)) {
+                    showPermissionRationaleDialog()
+                } else {
+                    Toast.makeText(this, "Habilita las notificaciones en Ajustes para ver las alarmas", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("TodoAppDebug", "onCreate started")
-        try {
-            val app = application as TodoApplication
-            Log.d("TodoAppDebug", "TodoApplication OK")
 
-            val viewModel = NoteViewModel(app.repository)
-            Log.d("TodoAppDebug", "NoteViewModel OK")
+        // Pedir permiso al iniciar la app
+        checkNotificationPermission()
 
-            setContent {
-                TodoappTheme {
-                    val windowSize = calculateWindowSizeClass(this)
-                    Surface {
-                        MyApp(
-                            windowSizeClass = windowSize.widthSizeClass,
-                            viewModel = viewModel
-                        )
-                    }
+        val app = application as TodoApplication
+
+        val viewModelFactory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(NoteViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return NoteViewModel(app.repository) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+
+        setContent {
+            TodoappTheme {
+                val windowSize = calculateWindowSizeClass(this)
+                Surface {
+                    MyApp(
+                        windowSizeClass = windowSize.widthSizeClass,
+                        viewModel = viewModel(factory = viewModelFactory)
+                    )
                 }
             }
-
-        } catch (e: Exception) {
-            Log.e("TodoAppDebug", "Error en MainActivity", e)
         }
     }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                // Ya tenemos permiso
+            } else {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun showPermissionRationaleDialog() {
+        if (hasShownRationale) return
+        hasShownRationale = true
+
+        AlertDialog.Builder(this)
+            .setTitle("Permiso necesario")
+            .setMessage("Para que la app funcione correctamente y te avise de tus tareas, necesitas aceptar el permiso de notificaciones.")
+            .setPositiveButton("Intentar de nuevo") { _, _ ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+                Toast.makeText(this, "Las alarmas no sonarán visualmente", Toast.LENGTH_SHORT).show()
+            }
+            .setCancelable(false)
+            .show()
+    }
 }
-
-
 
 @Composable
 fun MyApp(windowSizeClass: WindowWidthSizeClass, viewModel: NoteViewModel) {
@@ -101,7 +137,7 @@ fun MyApp(windowSizeClass: WindowWidthSizeClass, viewModel: NoteViewModel) {
     }
 }
 
- @Composable
+@Composable
 fun TodoAppCompact(navController: NavHostController, viewModel: NoteViewModel) {
     NavHost(
         navController = navController,
@@ -131,12 +167,10 @@ fun TodoAppCompact(navController: NavHostController, viewModel: NoteViewModel) {
 
 @Composable
 fun TodoAppMedium(navController: NavHostController, viewModel: NoteViewModel) {
-    // Estado compartido entre ambas pantallas
     var selectedNote by remember { mutableStateOf<Note?>(null) }
 
     Row(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
-            // Pasamos un callback que actualiza la nota seleccionada
             MainScreen(
                 navController = navController,
                 viewModel = viewModel,
@@ -191,14 +225,11 @@ fun MainScreen(
     onNoteSelected: (Note) -> Unit = {},
     onAddNote: (() -> Unit)? = null
 ) {
-    // val context = LocalContext.current.applicationContext as TodoApplication
-    // val viewModel = remember { NoteViewModel(context.repository) }
     val allString = stringResource(id = R.string.all)
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf( allString) }
 
     val notesWithDetails by viewModel.allNotes.collectAsState()
-
 
     Column(
         modifier = Modifier
@@ -228,25 +259,21 @@ fun MainScreen(
             Button(
                 onClick = {
                     if (isCompact) {
-                        // En pantallas compact navega a la pantalla de edición
-                        // val defaultRoute = "edit/0/${Uri.encode("")}/${Uri.encode("")}/null/false/null"
                         val defaultRoute = "edit?noteId=-1"
                         navController.navigate(defaultRoute)
                     } else {
-                        // En pantallas medianas/grandes, solo limpia el formulario
-
                         onAddNote?.invoke()
                     }
                 },
                 modifier = Modifier
-                    .size(60.dp) // controla el diametro del círculo
+                    .size(60.dp)
                     .padding(8.dp),
-                shape = CircleShape, // hace el boton redondo
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
                 ),
-                contentPadding = PaddingValues(0.dp) // evita espacio interno extra
+                contentPadding = PaddingValues(0.dp)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -287,11 +314,9 @@ fun MainScreen(
                             note.title.contains(searchQuery, ignoreCase = true)
                 }
             ) { noteWithDetails ->
-                // ORDENAR AQUÍ
                 val orderedBlocks = noteWithDetails.mediaBlocks.sortedBy { it.order }
                 val note = noteWithDetails.note
                 val nChars=50
-                // Obtiene el primer bloque de texto e imagen si existen (para mostrar algo en la lista)
                 val firstText = orderedBlocks.firstOrNull { it.type == MediaType.TEXT }
                     ?.description?.take(nChars) ?: ""
                 val firstImageUri = orderedBlocks.firstOrNull { it.type == MediaType.IMAGE }?.content
@@ -312,9 +337,5 @@ fun MainScreen(
                 )
             }
         }
-
     }
-
 }
-
-

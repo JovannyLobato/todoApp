@@ -46,7 +46,6 @@ object AlarmScheduler {
                     )
                 }
             } catch (e: SecurityException) {
-                // Necesario para Android 12+ si falta el permiso
                 e.printStackTrace()
             }
         }
