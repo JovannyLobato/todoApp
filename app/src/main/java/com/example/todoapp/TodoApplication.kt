@@ -26,7 +26,6 @@ import android.app.Application
 import androidx.room.Room
 import com.example.todoapp.data.AppDatabase
 import com.example.todoapp.repository.NoteRepository
-import kotlin.getValue
 
 class TodoApplication : Application() {
 
@@ -34,13 +33,21 @@ class TodoApplication : Application() {
         Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
-            "notes_db" // nombre del archivo de base de datos
+            "notes_db"
         )
             .fallbackToDestructiveMigration()
             .build()
     }
 
     val repository: NoteRepository by lazy {
-        NoteRepository(database.noteDao())
+        // CORRECCIÓN AQUÍ:
+        // Ahora pasamos applicationContext como segundo parámetro
+        NoteRepository(database.noteDao(), applicationContext)
     }
+
+    override fun onCreate() {
+        super.onCreate()
+        NotificationHelper.createNotificationChannel(applicationContext)
+    }   
 }
+

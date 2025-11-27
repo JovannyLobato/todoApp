@@ -6,10 +6,11 @@ data class AlarmItem(
     var message: String = "",
     var alarmTime: LocalDateTime = LocalDateTime.now()
 )
-interface AlarmScheduler{
-    fun schedule(alarmItem: AlarmItem)
-    fun cancel(alarmItem: AlarmItem)
-}
+
+//interface AlarmScheduler {
+//    fun schedule(alarmItem: AlarmItem)
+//    fun cancel(alarmItem: AlarmItem)
+//}
 
 /*
 private var alarmMgr: AlarmManager? = null
