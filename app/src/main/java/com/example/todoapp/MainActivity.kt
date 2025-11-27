@@ -67,11 +67,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Pedir permiso al iniciar la app
         checkNotificationPermission()
 
-        val app = application as TodoApplication
+        val noteIdFromNotification = intent.getIntExtra("NOTE_ID", -1)
 
+        val app = application as TodoApplication
         val viewModelFactory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(NoteViewModel::class.java)) {
@@ -88,7 +88,8 @@ class MainActivity : ComponentActivity() {
                 Surface {
                     MyApp(
                         windowSizeClass = windowSize.widthSizeClass,
-                        viewModel = viewModel(factory = viewModelFactory)
+                        viewModel = viewModel(factory = viewModelFactory),
+                        startNoteId = noteIdFromNotification
                     )
                 }
             }
@@ -127,8 +128,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MyApp(windowSizeClass: WindowWidthSizeClass, viewModel: NoteViewModel) {
+fun MyApp(
+    windowSizeClass: WindowWidthSizeClass,
+    viewModel: NoteViewModel,
+    startNoteId: Int = -1
+) {
     val navController = rememberNavController()
+    LaunchedEffect(startNoteId) {
+        if (startNoteId != -1) {
+            // Navegar a la pantalla de edición con el ID de la nota
+            navController.navigate("edit?noteId=$startNoteId")
+        }
+    }
 
     when (windowSizeClass) {
         WindowWidthSizeClass.Compact -> TodoAppCompact(navController, viewModel)

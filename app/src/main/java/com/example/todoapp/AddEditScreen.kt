@@ -745,15 +745,15 @@ fun AddEditScreen(
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState()
 
-        // 1. Obtener la fecha base: Siempre debe haber sido establecida al abrir showTimePicker.
-        val baseDateTimestamp = reminderBaseDateMillis ?: Calendar.getInstance().timeInMillis
+        val baseDateTimestamp = reminderBaseDateMillis ?: uiState.dueDateTimestamp ?:
+                Calendar.getInstance().timeInMillis
 
         TimePickerDialog(
             onDismissRequest = {
                 showTimePicker = false
                 reminderBaseDateMillis = null // Limpiar el estado al cerrar
             },
-            title = { Text("Selecciona la hora del recordatorio") },
+            title = { Text("Selecciona la hora") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -763,11 +763,12 @@ fun AddEditScreen(
                             timePickerState.minute
                         )
 
-                        if (uiState.isTask && uiState.dueDateTimestamp == baseDateTimestamp) {
+                        if (reminderBaseDateMillis != null) {
+                            viewModel.addReminder(combinedTimestamp)
+                        } else {
                             viewModel.onDueDateChange(combinedTimestamp)
                         }
 
-                        viewModel.addReminder(combinedTimestamp)
                         showTimePicker = false
                         reminderBaseDateMillis = null // Limpiar el estado
                     }

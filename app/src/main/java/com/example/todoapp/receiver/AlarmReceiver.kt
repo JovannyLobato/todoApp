@@ -1,11 +1,15 @@
-// com/example/todoapp/receiver/ReminderBroadcastReceiver.kt
-
 package com.example.todoapp.receiver
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.example.todoapp.NotificationHelper
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.example.todoapp.MainActivity
+import com.example.todoapp.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -19,26 +23,54 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        android.util.Log.d("PRUEBA_ALARMA", "¡El Receiver se activó! Recibiendo alarma...")
         val reminderId = intent.getIntExtra(REMINDER_ID, 0)
         val title = intent.getStringExtra(REMINDER_TITLE) ?: "Recordatorio"
         val reminderTimeMillis = intent.getLongExtra(REMINDER_TIME, 0L)
+        val noteId = intent.getIntExtra("NOTE_ID", -1)
 
-        val timeString = if (reminderTimeMillis > 0) {
-            SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(reminderTimeMillis))
-        } else {
-            "Hora desconocida"
+        val timeString = if (reminderTimeMillis > 0L) {
+            SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(reminderTimeMillis))
+        } else ""
+
+        showNotification(context, title, "Hora de tu tarea ($timeString)", reminderId, noteId)
+    }
+
+    private fun showNotification(context: Context, title: String, message: String, notificationId: Int, noteId: Int) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "todo_reminder_channel"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Recordatorios de Notas",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
         }
 
-        val message = "¡Es hora de: $title!"
+        // Configurar el Intent para abir la nota que mando la notificacion
+        val tapIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // Pasar el Id del MainActivity
+            putExtra("NOTE_ID", noteId)
+        }
 
-        NotificationHelper.showNotification(
+        val pendingIntent = PendingIntent.getActivity(
             context,
-            reminderId,
-            "Recordatorio de ${timeString}",
-            message
+            notificationId, // Usar ID único para que no se sobrescriban los intents
+            tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        android.util.Log.d("PRUEBA_ALARMA", "Intentando mostrar notificación")
 
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(notificationId, notification)
     }
 }

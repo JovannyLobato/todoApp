@@ -18,6 +18,7 @@ object AlarmScheduler {
             putExtra(AlarmReceiver.REMINDER_ID, reminder.id)
             putExtra(AlarmReceiver.REMINDER_TITLE, noteTitle)
             putExtra(AlarmReceiver.REMINDER_TIME, reminder.reminderTime)
+            putExtra("NOTE_ID", reminder.noteId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
