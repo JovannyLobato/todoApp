@@ -451,7 +451,11 @@ fun AddEditScreen(
                                 val descriptionModifier =
                                     if (block.type == MediaType.TEXT) {
                                         Modifier.fillMaxWidth()
-                                    } else {
+                                    } else if (block.type == MediaType.VIDEO){
+                                        Modifier.padding(horizontal = 30.dp)
+                                    }else if (block.type == MediaType.AUDIO){
+                                        Modifier.padding(end = 30.dp)
+                                    }else {
                                         Modifier
                                             .fillMaxWidth()
                                             .padding(start = 30.dp)
@@ -566,7 +570,10 @@ fun AddEditScreen(
                     Button(onClick = { viewModel.setShowVideoSheet(true) }) {
                         Icon(Icons.Filled.Videocam, contentDescription = stringResource(id = R.string.add_video))
                     }
+
                 }
+                Spacer(Modifier.height(70.dp))
+
             }
 
 
@@ -827,13 +834,6 @@ fun AddEditScreen(
             onClose = { showFullImage = false },
         )
     }
-    /*
-    val pickVideoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        viewModel.onVideoSelected(context, uri)
-    }
-    */
     val pickVideoLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument()
