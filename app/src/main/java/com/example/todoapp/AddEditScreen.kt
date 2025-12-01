@@ -584,6 +584,33 @@ fun AddEditScreen(
 
             }
 
+            if (showPermissionDeniedDialog) {
+                AlertDialog(
+                    onDismissRequest = { showPermissionDeniedDialog = false },
+                    title = { Text("Permiso requerido") },
+                    text = {
+                        Text("Necesitas permitir las notificaciones para crear recordatorios. Por favor, habilítalas en la configuración.")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showPermissionDeniedDialog = false
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            }
+                        ) {
+                            Text("Ir a Configuración")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPermissionDeniedDialog = false }) {
+                            Text(stringResource(id = R.string.cancel))
+                        }
+                    }
+                )
+            }
 
             if (showBlockMediaDeleteDialog) {
                 AlertDialog(
@@ -715,16 +742,19 @@ fun AddEditScreen(
                     }
                     TextButton(onClick = {
                         datePickerState.selectedDateMillis?.let { dateMillis ->
-                            val calendar = Calendar.getInstance().apply {
-                                timeInMillis = dateMillis
+                            val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                            utcCalendar.timeInMillis = dateMillis
 
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
+                            val localCalendar = Calendar.getInstance()
+                            localCalendar.set(
+                                utcCalendar.get(Calendar.YEAR),
+                                utcCalendar.get(Calendar.MONTH),
+                                utcCalendar.get(Calendar.DAY_OF_MONTH),
+                                0, 0, 0
+                            )
+                            localCalendar.set(Calendar.MILLISECOND, 0)
 
-                            viewModel.onDueDateChange(calendar.timeInMillis)
+                            viewModel.onDueDateChange(localCalendar.timeInMillis)
                             viewModel.setShowDatePicker(false)
                             showTimePicker = true
                         }
@@ -737,6 +767,7 @@ fun AddEditScreen(
             DatePicker(state = datePickerState)
         }
     }
+
     @OptIn(ExperimentalMaterial3Api::class)
     if (showReminderDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -747,14 +778,20 @@ fun AddEditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { dateMillis ->
-                        val calendar = Calendar.getInstance().apply {
-                            timeInMillis = dateMillis
-                            set(Calendar.HOUR_OF_DAY, 0)
-                            set(Calendar.MINUTE, 0)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-                        reminderBaseDateMillis = calendar.timeInMillis
+                        // --- CORRECCIÓN DE ZONA HORARIA ---
+                        val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                        utcCalendar.timeInMillis = dateMillis
+
+                        val localCalendar = Calendar.getInstance()
+                        localCalendar.set(
+                            utcCalendar.get(Calendar.YEAR),
+                            utcCalendar.get(Calendar.MONTH),
+                            utcCalendar.get(Calendar.DAY_OF_MONTH),
+                            0, 0, 0
+                        )
+                        localCalendar.set(Calendar.MILLISECOND, 0)
+
+                        reminderBaseDateMillis = localCalendar.timeInMillis
                         showReminderDatePicker = false
                         showTimePicker = true
                     }
@@ -764,6 +801,7 @@ fun AddEditScreen(
             DatePicker(state = datePickerState)
         }
     }
+
     @OptIn(ExperimentalMaterial3Api::class)
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState()

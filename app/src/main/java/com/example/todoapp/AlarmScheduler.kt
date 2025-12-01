@@ -19,6 +19,7 @@ object AlarmScheduler {
             putExtra(AlarmReceiver.REMINDER_TITLE, noteTitle)
             putExtra(AlarmReceiver.REMINDER_TIME, reminder.reminderTime)
             putExtra("NOTE_ID", reminder.noteId)
+            data = android.net.Uri.parse("content://receiver/${reminder.id}")
         }
 
         val pendingIntent = PendingIntent.getBroadcast(

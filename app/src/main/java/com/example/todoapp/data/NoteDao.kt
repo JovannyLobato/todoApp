@@ -48,4 +48,7 @@ interface NoteDao {
 
     @Query("UPDATE mediablock SET description = :description WHERE id = :id")
     suspend fun updateMediaBlockDescription(id: Int, description: String)
+
+    @Query("SELECT * FROM reminder")
+    suspend fun getAllReminders(): List<Reminder>
 }
