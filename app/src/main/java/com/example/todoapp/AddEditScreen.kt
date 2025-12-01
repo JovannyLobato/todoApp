@@ -440,6 +440,14 @@ fun AddEditScreen(
                                                             useController = true
                                                             controllerShowTimeoutMs = 1000
                                                             player = exoPlayer
+
+                                                            setShowNextButton(false)
+                                                            setShowPreviousButton(false)
+                                                            setShowFastForwardButton(false)
+                                                            setShowRewindButton(false)
+                                                            setShowSubtitleButton(false)
+                                                            setShowVrButton(false)
+                                                            
                                                         }
                                                     }
                                                 )
