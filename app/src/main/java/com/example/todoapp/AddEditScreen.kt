@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
@@ -66,6 +67,7 @@ import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +77,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
@@ -88,9 +91,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.todoapp.model.MediaBlock
@@ -138,6 +146,7 @@ fun formatTimestamp(timestamp: Long?): String {
 }
 
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.Q)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -340,6 +349,7 @@ fun AddEditScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
+                // aqui se listan los MEDIABLOCKS checo
                 uiState.mediaBlocks.forEachIndexed { index, block ->
                     key(block.id) {
                         val     description = block.description ?: ""
@@ -405,8 +415,36 @@ fun AddEditScreen(
                                     }
 
                                     MediaType.VIDEO -> {
-                                        Text(stringResource(id = R.string.add_video) + ": ${block.content ?: stringResource(id = R.string.add_video)}")
-                                        // Luego metemos ExoPlayer
+                                        block.content?.let {uriString ->
+                                            val uri = Uri.parse(uriString)
+                                            val exoPlayer = remember {
+                                                ExoPlayer.Builder(context).build().apply {
+                                                    setMediaItem(MediaItem.fromUri(uri))
+                                                    prepare()
+                                                    playWhenReady = false
+                                                }
+                                            }
+                                            DisposableEffect(Unit) {
+                                                onDispose {
+                                                    exoPlayer.release()
+                                                }
+                                            }
+                                            Column {
+                                                AndroidView(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(200.dp)
+                                                        .clip(RoundedCornerShape(12.dp)),
+                                                    factory = { ctx ->
+                                                        PlayerView(ctx).apply {
+                                                            useController = true
+                                                            controllerShowTimeoutMs = 1000
+                                                            player = exoPlayer
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }?: Text("Sin video")
                                     }
                                 }
 
@@ -789,11 +827,32 @@ fun AddEditScreen(
             onClose = { showFullImage = false },
         )
     }
+    /*
     val pickVideoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        viewModel.onVideoSelected(uri)
+        viewModel.onVideoSelected(context, uri)
     }
+    */
+    val pickVideoLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            uri?.let {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                }
+
+                viewModel.onVideoSelected(context, it)
+            }
+        }
+
+
 
     if (uiState.showVideoSheet) {
         VideoPickerSheet(
@@ -816,7 +875,7 @@ fun AddEditScreen(
                     }
                 }
             },
-            onPickGallery = { pickVideoLauncher.launch("video/*") },
+            onPickGallery = { pickVideoLauncher.launch(arrayOf("video/*")) },
             onDismiss = { viewModel.setShowVideoSheet(false) }
         )
     }

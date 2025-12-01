@@ -2,6 +2,7 @@ package com.example.todoapp.viewmodel
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -259,8 +260,17 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         pendingVideoUri = null
     }
 
-    fun onVideoSelected(uri: Uri?) {
+    fun onVideoSelected(context: Context, uri: Uri?) {
         uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+            }
+
             addMediaBlock(MediaType.VIDEO, it.toString())
         }
     }
