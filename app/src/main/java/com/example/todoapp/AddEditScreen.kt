@@ -1,79 +1,80 @@
 package com.example.todoapp
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.example.todoapp.model.MediaType
-import com.example.todoapp.repository.NoteRepository
-import com.example.todoapp.viewmodel.NoteViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
@@ -81,25 +82,26 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.todoapp.model.MediaBlock
-import androidx.compose.ui.text.TextStyle as textstyle
+import com.example.todoapp.model.MediaType
+import com.example.todoapp.viewmodel.NoteViewModel
 import java.io.File
-import java.time.format.TextStyle
-import java.time.LocalDateTime
-import java.time.ZoneId
+import java.text.SimpleDateFormat
 import java.util.Calendar
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.ui.window.Dialog
-import android.Manifest
-import android.content.pm.PackageManager
-import android.provider.Settings
-import androidx.core.content.ContextCompat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.ui.text.TextStyle as textstyle
 
 
 fun combineDateWithTime(dateTimestamp: Long, hour: Int, minute: Int): Long {
@@ -113,7 +115,6 @@ fun combineDateWithTime(dateTimestamp: Long, hour: Int, minute: Int): Long {
     }
     return calendar.timeInMillis
 }
-// AddEditScreen.kt
 
 @Composable
 fun formatTimestamp(timestamp: Long?): String {
@@ -125,9 +126,9 @@ fun formatTimestamp(timestamp: Long?): String {
                 calendar.get(Calendar.SECOND) == 0
 
         val dateFormat = if (isMidnight) {
-            SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) // Sin hora
+            SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
         } else {
-            SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) // Con hora
+            SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
         }
 
         dateFormat.format(date)
@@ -136,56 +137,8 @@ fun formatTimestamp(timestamp: Long?): String {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ImagePickerSheet(
-    onTakePhoto: () -> Unit,
-    onPickGallery: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(stringResource(id = R.string.add_image), style = MaterialTheme.typography.titleMedium)
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = {
-                    onTakePhoto()
-                    onDismiss()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.PhotoCamera, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(id = R.string.take_photo))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    onPickGallery()
-                    onDismiss()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.PhotoLibrary, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(id = R.string.choose_from_gallery))
-            }
-        }
-    }
-}
-
-
-
+@RequiresApi(Build.VERSION_CODES.Q)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditScreen(
@@ -194,7 +147,6 @@ fun AddEditScreen(
     noteId: Int = -1
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBlockMediaDeleteDialog by remember { mutableStateOf(false)}
@@ -206,12 +158,43 @@ fun AddEditScreen(
     var showFullImage by remember { mutableStateOf(false) }
     var fullImageUri by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
+    var showVideoSheet by remember { mutableStateOf(false) }
 
 
-    // Estado para mostrar el bottom sheet / cámara
+    val takeVideoLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
+            Log.d("PERMISSION1", "Video capturado: $success")
+            viewModel.onVideoCaptured(success)
+        }
+
+    val permissionsLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+
+            val granted = results.values.all { it }
+
+            Log.d("PERMISSION1", "Callback permisos  $granted")
+
+            if (granted) {
+                val uri = viewModel.prepareVideoUri(context)
+                Log.d("PERMISSION1", "URI DEVUELTA POR PREPAREDVIDEOURI: $uri")
+                if (uri != null) {
+                    Log.d("PERMISSION1", "Callback lanzando camara")
+                    viewModel.setPendingVideoUri(uri)
+                    takeVideoLauncher.launch(uri)
+                }
+            } else {
+                Log.d("PERMISSION1", "Callback denegado")
+                viewModel.setShowVideoPermissionDeniedDialog(true)
+            }
+        }
+
+
+
+
+
+
     var showImageSheet by remember { mutableStateOf(false) }
-    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) } // URI temporal para TakePicture
-    // GetContent
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -227,7 +210,7 @@ fun AddEditScreen(
             viewModel.addMediaBlock(MediaType.IMAGE, it.toString())
         }
     }
-    // TakePicture - necesita un URI FileProvider
+
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
@@ -251,8 +234,6 @@ fun AddEditScreen(
         tempPhotoUri = uri
         takePictureLauncher.launch(uri)
     }
-
-
 
     // carga la nota seleccionada
     LaunchedEffect(noteId) {
@@ -359,9 +340,6 @@ fun AddEditScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                // Spacer(Modifier.height(12.dp))
-
-                // Text("Contenido:") // Removed hardcoded text
                 uiState.mediaBlocks.forEachIndexed { index, block ->
                     key(block.id) {
                         val     description = block.description ?: ""
@@ -465,11 +443,7 @@ fun AddEditScreen(
                         }
                     }
                 }
-
-
-
                 Spacer(Modifier.height(16.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -499,24 +473,19 @@ fun AddEditScreen(
                 }
 
                 Button(onClick = {
-                    //  Verificacion de la version de Android
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        // Verificacion del permiso (Lo tiene o no9
                         val hasPermission = ContextCompat.checkSelfPermission(
                             context,
                             Manifest.permission.POST_NOTIFICATIONS
                         ) == PackageManager.PERMISSION_GRANTED
 
                         if (hasPermission) {
-                            // Si tiene el permiso
                             showReminderDatePicker = true
                             reminderBaseDateMillis = uiState.dueDateTimestamp
                         } else {
-                            // Si no tiene el permiso mostramos el mensaje
                             showPermissionDeniedDialog = true
                         }
                     } else {
-                        // Android < V13: No necesita permiso en tiempo de ejecución
                         showReminderDatePicker = true
                         reminderBaseDateMillis = uiState.dueDateTimestamp
                     }
@@ -546,16 +515,17 @@ fun AddEditScreen(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
+                    // botones de media block
                     Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
                         Icon(Icons.Filled.Description, contentDescription = stringResource(id = R.string.add_text))
                     }
                     Button(onClick = { showImageSheet = true }) {
                         Icon(Icons.Filled.Image, contentDescription = stringResource(id = R.string.add_image_desc))
                     }
-                    Button(onClick = { viewModel.addMediaBlock(MediaType.AUDIO, "uri_de_audio") }) {
+                    Button(onClick = {  }) {
                         Icon(Icons.Filled.Audiotrack, contentDescription = stringResource(id = R.string.add_audio))
                     }
-                    Button(onClick = { viewModel.addMediaBlock(MediaType.VIDEO, "uri_de_video") }) {
+                    Button(onClick = { viewModel.setShowVideoSheet(true) }) {
                         Icon(Icons.Filled.Videocam, contentDescription = stringResource(id = R.string.add_video))
                     }
                 }
@@ -585,17 +555,17 @@ fun AddEditScreen(
                 )
             }
 
-            if (showPermissionDeniedDialog) {
+            if (uiState.showVideoPermissionDeniedDialog) {
                 AlertDialog(
-                    onDismissRequest = { showPermissionDeniedDialog = false },
+                    onDismissRequest = { viewModel.setShowVideoPermissionDenied(false) },
                     title = { Text("Permiso requerido") },
                     text = {
-                        Text("Necesitas permitir las notificaciones para crear recordatorios. Por favor, habilítalas en la configuración.")
+                        Text("Necesitas permitir cámara y micrófono para grabar video.")
                     },
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                showPermissionDeniedDialog = false
+                                viewModel.setShowVideoPermissionDenied(false)
                                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                     data = Uri.fromParts("package", context.packageName, null)
                                 }
@@ -606,12 +576,13 @@ fun AddEditScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPermissionDeniedDialog = false }) {
-                            Text(stringResource(id = R.string.cancel))
+                        TextButton(onClick = { viewModel.setShowVideoPermissionDenied(false) }) {
+                            Text("Cancelar")
                         }
                     }
                 )
             }
+
 
             Box(
                 modifier = Modifier
@@ -619,6 +590,7 @@ fun AddEditScreen(
                     .padding(padding)
                     .imePadding()
             ) {
+                // boton de salir o eliminar
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(id = R.string.exit),
@@ -658,7 +630,7 @@ fun AddEditScreen(
                     )
                 }
 
-
+                // boton de guardar
                 IconButton(
                     onClick = {
                         viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
@@ -715,7 +687,6 @@ fun AddEditScreen(
     @OptIn(ExperimentalMaterial3Api::class)
     if (showReminderDatePicker) {
         val datePickerState = rememberDatePickerState(
-            // Opcional: Si quieres que el picker se abra en la fecha de vencimiento de la tarea.
             initialSelectedDateMillis = uiState.dueDateTimestamp
         )
         DatePickerDialog(
@@ -723,7 +694,6 @@ fun AddEditScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { dateMillis ->
-                        // Guardar solo la fecha a medianoche (00:00:00) como base para el TimePicker.
                         val calendar = Calendar.getInstance().apply {
                             timeInMillis = dateMillis
                             set(Calendar.HOUR_OF_DAY, 0)
@@ -731,7 +701,7 @@ fun AddEditScreen(
                             set(Calendar.SECOND, 0)
                             set(Calendar.MILLISECOND, 0)
                         }
-                        reminderBaseDateMillis = calendar.timeInMillis // Almacenar la fecha seleccionada
+                        reminderBaseDateMillis = calendar.timeInMillis
                         showReminderDatePicker = false
                         showTimePicker = true
                     }
@@ -819,9 +789,128 @@ fun AddEditScreen(
             onClose = { showFullImage = false },
         )
     }
+    val pickVideoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        viewModel.onVideoSelected(uri)
+    }
+
+    if (uiState.showVideoSheet) {
+        VideoPickerSheet(
+            onTakeVideo = {
+                val perms = requiredVideoPermissions()
+                val granted = perms.all {
+                    ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                }
+
+                Log.d("PERMISSION1", "UI va a lanzar la cámara")
+
+                if (!granted) {
+                    permissionsLauncher.launch(perms)
+                } else {
+                    val uri = viewModel.prepareVideoUri(context)
+                    if (uri != null) {
+                        viewModel.setPendingVideoUri(uri)
+                        Log.d("PERMISSION1", "UI lanza cámara con URI = $uri")
+                        takeVideoLauncher.launch(uri)
+                    }
+                }
+            },
+            onPickGallery = { pickVideoLauncher.launch("video/*") },
+            onDismiss = { viewModel.setShowVideoSheet(false) }
+        )
+    }
+
+    if (uiState.showVideoPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.setShowVideoPermissionDeniedDialog(false) },
+            title = { Text("Permiso requerido") },
+            text = { Text("Necesitas permitir el acceso a la cámara para grabar video.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.setShowVideoPermissionDeniedDialog(false)
+                        val intent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", context.packageName, null)
+                        )
+                        context.startActivity(intent)
+                    }
+                ) { Text("Ir a Configuración") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.setShowVideoPermissionDeniedDialog(false) }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
 
+    LaunchedEffect(uiState.requestVideoPermission) {
+        if (uiState.requestVideoPermission) {
+            Log.d("PERMISSION1", "UI va a lanzar la cámara")
+            permissionsLauncher.launch(requiredVideoPermissions())
+        }
+    }
 }
+
+fun requiredVideoPermissions(): Array<String> {
+    return arrayOf(
+        android.Manifest.permission.CAMERA,
+        android.Manifest.permission.RECORD_AUDIO
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VideoPickerSheet(
+    onTakeVideo: () -> Unit,
+    onPickGallery: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text("Añadir video", style = MaterialTheme.typography.titleMedium)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = {
+                    onTakeVideo()
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Videocam, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Grabar video")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    onPickGallery()
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.VideoLibrary, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Elegir de la galería")
+            }
+        }
+    }
+}
+
 
 
 @Composable

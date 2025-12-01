@@ -1,5 +1,15 @@
 package com.example.todoapp.viewmodel
 
+import android.content.ContentValues
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,6 +20,8 @@ import com.example.todoapp.model.*
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.*
 import com.example.todoapp.repository.NoteRepository
+import com.example.todoapp.requiredVideoPermissions
+import java.io.File
 import java.util.UUID
 
 private var nextBlockId = 1
@@ -21,7 +33,13 @@ data class AddEditUiState(
     val mediaBlocks: List<MediaBlock> = emptyList(),
     // val mediaBlocks: MutableList<MediaBlock> = mutableListOf(),
     val reminders: List<Reminder> = emptyList(),
-    val showDatePicker: Boolean = false
+    val showDatePicker: Boolean = false,
+    val showVideoSheet: Boolean = false,
+    val showVideoPermissionDeniedDialog: Boolean = false,
+    val requestVideoPermission: Boolean = false,
+    val launchCamera: Boolean = false,
+    val videoUri: Uri? = null,
+    val permissionAttempts: Int = 0,
 )
 
 
@@ -30,7 +48,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(AddEditUiState())
     val uiState: StateFlow<AddEditUiState> = _uiState
 
-    // ======== Manejadores de campos ========
+    private var pendingVideoUri: Uri? = null
+
+
+
     fun onTitleChange(newTitle: String) {
         _uiState.value = _uiState.value.copy(title = newTitle)
     }
@@ -108,6 +129,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         _uiState.value = _uiState.value.copy(mediaBlocks = updatedList)
     }
 
+    fun setShowVideoPermissionDenied(show: Boolean) {
+        _uiState.update { it.copy(showVideoPermissionDeniedDialog = show) }
+    }
+
     fun removeMediaBlock(blockId: Int) {
         _uiState.update { current ->
             current.copy(
@@ -117,7 +142,8 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
 
-    // ======== Guardar Nota Completa ========
+
+
     fun saveNote(isEditing: Boolean, noteId: Int? = null) {
         viewModelScope.launch {
             val idValue = noteId ?: -1
@@ -202,6 +228,57 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             )
         }
     }
+
+
+
+
+    fun prepareVideoUri(context: Context): Uri? {
+        val videoFile = File(
+            context.externalCacheDir,
+            "video_${System.currentTimeMillis()}.mp4"
+        )
+        videoFile.createNewFile()
+
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            videoFile
+        )
+    }
+
+
+    fun onVideoCaptured(success: Boolean) {
+        Log.d("PERMISSION1", "Success = $success, pendingUri = $pendingVideoUri")
+        if (success && pendingVideoUri != null) {
+            addMediaBlock(MediaType.VIDEO, pendingVideoUri.toString())
+            Log.d("PERMISSION1", "video creado")
+        }
+        else{
+            Log.d("PERMISSION1", "no se creo el mediablock")
+        }
+        pendingVideoUri = null
+    }
+
+    fun onVideoSelected(uri: Uri?) {
+        uri?.let {
+            addMediaBlock(MediaType.VIDEO, it.toString())
+        }
+    }
+
+    fun setShowVideoSheet(show: Boolean) {
+        _uiState.update { it.copy(showVideoSheet = show) }
+    }
+
+    fun setShowVideoPermissionDeniedDialog(show: Boolean) {
+        _uiState.update { it.copy(showVideoPermissionDeniedDialog = show) }
+    }
+
+
+    fun setPendingVideoUri(uri: Uri) {
+        pendingVideoUri = uri
+    }
+
+
 
     suspend fun getNoteWithDetails(id: Int): NoteWithDetails? {
         return repository.getNoteWithDetails(id)
