@@ -15,66 +15,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerDialog
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,12 +61,6 @@ import java.util.Locale
 import androidx.compose.ui.text.TextStyle as textstyle
 import android.media.MediaPlayer
 import android.media.MediaRecorder
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material3.LinearProgressIndicator
-
 
 fun combineDateWithTime(dateTimestamp: Long, hour: Int, minute: Int): Long {
     val date = Date(dateTimestamp)
@@ -162,71 +105,44 @@ fun AddEditScreen(
     viewModel: NoteViewModel,
     noteId: Int = -1
 ) {
+    // Solo observamos el estado único del ViewModel
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var showBlockMediaDeleteDialog by remember { mutableStateOf(false)}
-    var showTimePicker by remember { mutableStateOf(false) }
-    var showReminderDatePicker by remember { mutableStateOf(false) }
-    var reminderBaseDateMillis by remember { mutableStateOf<Long?>(null) }
-    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
-    var blockToDelete by remember { mutableStateOf<MediaBlock?>(null) }
-    var showFullImage by remember { mutableStateOf(false) }
-    var fullImageUri by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
-    var showVideoSheet by remember { mutableStateOf(false) }
-    var showAudioSheet by remember { mutableStateOf(false) }
 
 
-    val takeVideoLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
-            Log.d("PERMISSION1", "Video capturado: $success")
-            viewModel.onVideoCaptured(success)
-        }
+    val takeVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
+        viewModel.onVideoCaptured(success)
+    }
 
-    val permissionsLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
-
-            val granted = results.values.all { it }
-
-            Log.d("PERMISSION1", "Callback permisos  $granted")
-
-            if (granted) {
-                val uri = viewModel.prepareVideoUri(context)
-                Log.d("PERMISSION1", "URI DEVUELTA POR PREPAREDVIDEOURI: $uri")
-                if (uri != null) {
-                    Log.d("PERMISSION1", "Callback lanzando camara")
-                    viewModel.setPendingVideoUri(uri)
-                    takeVideoLauncher.launch(uri)
-                }
-            } else {
-                Log.d("PERMISSION1", "Callback denegado")
-                viewModel.setShowVideoPermissionDeniedDialog(true)
+    val permissionsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val granted = results.values.all { it }
+        if (granted) {
+            val uri = viewModel.prepareVideoUri(context)
+            if (uri != null) {
+                viewModel.setPendingVideoUri(uri)
+                takeVideoLauncher.launch(uri)
             }
+        } else {
+            viewModel.setShowVideoPermissionDeniedDialog(true)
         }
+    }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            showAudioSheet = true
+            viewModel.setShowAudioSheet(true) // Usamos ViewModel
         }
     }
 
-    var showImageSheet by remember { mutableStateOf(false) }
-    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             try {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch(e: Exception){
-
-            }
+                context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch(e: Exception){ }
             viewModel.addMediaBlock(MediaType.IMAGE, it.toString())
         }
     }
@@ -235,27 +151,23 @@ fun AddEditScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success) {
-            tempPhotoUri?.let { uri ->
+            uiState.tempPhotoUri?.let { uri -> // Leemos del uiState
                 viewModel.addMediaBlock(MediaType.IMAGE, uri.toString())
             }
         }
-        // limpia el estado
-        tempPhotoUri = null
-    }
-    // funcionn para crear archivo temporal y lanzar la camara
-    fun launchCamera() {
-        val file = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
-        file.createNewFile()
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            file
-        )
-        tempPhotoUri = uri
-        takePictureLauncher.launch(uri)
+        viewModel.setTempPhotoUri(null) // Limpiamos en ViewModel
     }
 
-    // carga la nota seleccionada
+    // Función auxiliar que ahora usa el ViewModel
+    fun launchCamera() {
+        val uri = viewModel.prepareImageUri(context) // Nueva función en VM
+        viewModel.setTempPhotoUri(uri)
+        if (uri != null) {
+            takePictureLauncher.launch(uri)
+        }
+    }
+
+    // Carga inicial
     LaunchedEffect(noteId) {
         if (noteId != -1) {
             val noteWithDetails = viewModel.getNoteWithDetails(noteId)
@@ -266,15 +178,15 @@ fun AddEditScreen(
         }
     }
 
-    val color = Color(0xFF120524)
+    // --- UI ---
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         containerColor = Color.Transparent,
         modifier = Modifier
             .padding(top = 10.dp)
             .let {
-                if (showFullImage) it.clickable(enabled = false) {}
-                else it
+                // Leemos estado desde uiState
+                if (uiState.showFullImage) it.clickable(enabled = false) {} else it
             },
         topBar = {
             TextField(
@@ -286,7 +198,6 @@ fun AddEditScreen(
                     unfocusedContainerColor = Color.Transparent,
                     disabledContainerColor = Color.Transparent,
                     errorContainerColor = Color.Transparent,
-
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
@@ -297,33 +208,26 @@ fun AddEditScreen(
                     .padding(horizontal = 10.dp)
                     .padding(top = 30.dp)
                     .background(Color.Transparent),
-
-                placeholder = {
-                    Text(text = stringResource(id = R.string.write_a_title_placeholder))
-                },
-                textStyle = textstyle(
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                placeholder = { Text(text = stringResource(id = R.string.write_a_title_placeholder)) },
+                textStyle = textstyle(fontSize = 28.sp, fontWeight = FontWeight.Bold)
             )
         }
     ) { padding ->
-        if (showImageSheet) {
+
+        // Sheet de Imagen (Estado en VM)
+        if (uiState.showImageSheet) {
             ModalBottomSheet(
-                onDismissRequest = { showImageSheet = false }
+                onDismissRequest = { viewModel.setShowImageSheet(false) }
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
                 ) {
                     Text(stringResource(id = R.string.add_image), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(12.dp))
-
                     Button(
                         onClick = {
                             launchCamera()
-                            showImageSheet = false
+                            viewModel.setShowImageSheet(false)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -331,13 +235,11 @@ fun AddEditScreen(
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(id = R.string.take_photo))
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Button(
                         onClick = {
                             galleryLauncher.launch("image/*")
-                            showImageSheet = false
+                            viewModel.setShowImageSheet(false)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -348,86 +250,54 @@ fun AddEditScreen(
                 }
             }
         }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 0.dp)
-        ) {
+
+        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 0.dp)) {
             Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(horizontal = 0.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
             ) {
-                // aqui se listan los MEDIABLOCKS checo
                 uiState.mediaBlocks.forEachIndexed { index, block ->
                     key(block.id) {
-                        val     description = block.description ?: ""
                         Card(
                             modifier = Modifier
-                                .padding(
-                                    horizontal = 0.dp
-                                )
+                                .padding(horizontal = 0.dp)
                                 .combinedClickable(
                                     onClick = {},
                                     onLongClick = {
-                                        blockToDelete = block
-                                        showBlockMediaDeleteDialog = true }
+                                        viewModel.setBlockToDelete(block) // Guardamos en VM
+                                        viewModel.setShowBlockMediaDeleteDialog(true) // Mostramos dialogo desde VM
+                                    }
                                 )
                                 .fillMaxWidth(),
-
                             shape = RectangleShape,
                             elevation = CardDefaults.cardElevation(0.dp),
-                            //hay que cambiar  esto cuando esten los estilos listos
-                            colors = CardDefaults.cardColors(
-                                containerColor = Transparent
-                            )
+                            colors = CardDefaults.cardColors(containerColor = Transparent)
                         ) {
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp)
-                                    .padding(bottom = 10.dp),
-                                horizontalAlignment = Alignment.Start
-                            ) {
+                            Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp).padding(bottom = 10.dp)) {
                                 when (block.type) {
-
-                                    MediaType.TEXT -> {
-                                    }
-
+                                    MediaType.TEXT -> { }
                                     MediaType.IMAGE -> {
                                         block.content?.let { uri ->
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.Start
-                                            ) {
-                                                Image(
-                                                    painter = rememberAsyncImagePainter(uri),
-                                                    contentDescription = stringResource(id = R.string.add_image_desc),
-                                                    modifier = Modifier
-                                                        .width(250.dp)
-                                                        .heightIn(min = 200.dp)
-                                                        .clickable {
-                                                            focusManager.clearFocus()
-                                                            fullImageUri = uri
-                                                            showFullImage = true
-                                                        },
-                                                    contentScale = ContentScale.Fit,
-                                                    alignment = Alignment.TopStart
-                                                )
-                                            }
+                                            Image(
+                                                painter = rememberAsyncImagePainter(uri),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .width(250.dp)
+                                                    .heightIn(min = 200.dp)
+                                                    .clickable {
+                                                        focusManager.clearFocus()
+                                                        viewModel.setShowFullImage(true, uri) // VM
+                                                    },
+                                                contentScale = ContentScale.Fit
+                                            )
                                         } ?: Text(stringResource(id = R.string.select_an_image))
                                     }
-
                                     MediaType.AUDIO -> {
                                         block.content?.let { uriString ->
                                             AudioPlayerBlock(uriString = uriString)
                                         } ?: Text("Error al cargar audio")
                                     }
-
                                     MediaType.VIDEO -> {
-                                        block.content?.let {uriString ->
+                                        block.content?.let { uriString ->
                                             val uri = Uri.parse(uriString)
                                             val exoPlayer = remember {
                                                 ExoPlayer.Builder(context).build().apply {
@@ -436,59 +306,25 @@ fun AddEditScreen(
                                                     playWhenReady = false
                                                 }
                                             }
-                                            DisposableEffect(Unit) {
-                                                onDispose {
-                                                    exoPlayer.release()
-                                                }
-                                            }
-                                            Column {
-                                                AndroidView(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(200.dp)
-                                                        .clip(RoundedCornerShape(12.dp)),
-                                                    factory = { ctx ->
-                                                        PlayerView(ctx).apply {
-                                                            useController = true
-                                                            controllerShowTimeoutMs = 1000
-                                                            player = exoPlayer
-
-                                                            setShowNextButton(false)
-                                                            setShowPreviousButton(false)
-                                                            setShowFastForwardButton(false)
-                                                            setShowRewindButton(false)
-                                                            setShowSubtitleButton(false)
-                                                            setShowVrButton(false)
-                                                            
-                                                        }
+                                            DisposableEffect(Unit) { onDispose { exoPlayer.release() } }
+                                            AndroidView(
+                                                modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)),
+                                                factory = { ctx ->
+                                                    PlayerView(ctx).apply {
+                                                        player = exoPlayer
+                                                        useController = true
+                                                        setShowNextButton(false) // etc...
                                                     }
-                                                )
-                                            }
-                                        }?: Text("Sin video")
+                                                }
+                                            )
+                                        } ?: Text("Sin video")
                                     }
                                 }
 
-                                val descriptionModifier =
-                                    if (block.type == MediaType.TEXT) {
-                                        Modifier.fillMaxWidth()
-                                    } else if (block.type == MediaType.VIDEO){
-                                        Modifier.padding(horizontal = 30.dp)
-                                    }else if (block.type == MediaType.AUDIO){
-                                        Modifier.padding(end = 30.dp)
-                                    }else {
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(start = 30.dp)
-                                    }
-
                                 TextField(
                                     value = block.description ?: "",
-                                    onValueChange = { newValue ->
-                                        var description = newValue
-                                        viewModel.updateBlockDescription(block.id, newValue)
-                                    },
-                                    modifier = descriptionModifier,
-                                    placeholder = { Text("") },
+                                    onValueChange = { viewModel.updateBlockDescription(block.id, it) },
+                                    modifier = Modifier.fillMaxWidth(),
                                     colors = TextFieldDefaults.colors(
                                         focusedContainerColor = Color.Transparent,
                                         unfocusedContainerColor = Color.Transparent,
@@ -497,15 +333,14 @@ fun AddEditScreen(
                                         unfocusedIndicatorColor = Color.Gray
                                     )
                                 )
-                                TextButton(onClick = { /*viewModel.removeMediaBlock(index) */},
-                                    modifier = Modifier.height(1.dp)) {
-                                    Text("", color = MaterialTheme.colorScheme.error)
-                                }
                             }
                         }
                     }
                 }
+
                 Spacer(Modifier.height(16.dp))
+
+                // Switch Es Tarea
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -520,422 +355,271 @@ fun AddEditScreen(
 
                 if (uiState.isTask) {
                     Spacer(Modifier.height(8.dp))
-                    Button(onClick = { viewModel.setShowDatePicker(true) }) {
+                    Button(onClick = { viewModel.setShowDatePicker(true) }) { // VM
                         Text(
-                            if (uiState.dueDateTimestamp == null)
-                                stringResource(id = R.string.select_due_date)
-                            else
-                                stringResource(id = R.string.date_label) + " ${
-                                    formatTimestamp(
-                                        uiState.dueDateTimestamp
-                                    )
-                                }"
+                            if (uiState.dueDateTimestamp == null) stringResource(id = R.string.select_due_date)
+                            else "${stringResource(id = R.string.date_label)} ${formatTimestamp(uiState.dueDateTimestamp)}"
                         )
                     }
                 }
 
+                // Botón Recordatorio
                 Button(onClick = {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        val hasPermission = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.POST_NOTIFICATIONS
-                        ) == PackageManager.PERMISSION_GRANTED
-
+                        val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
                         if (hasPermission) {
-                            showReminderDatePicker = true
-                            reminderBaseDateMillis = uiState.dueDateTimestamp
+                            viewModel.setShowReminderDatePicker(true)
+                            viewModel.setReminderBaseDateMillis(uiState.dueDateTimestamp)
                         } else {
-                            showPermissionDeniedDialog = true
+                            viewModel.setShowNotificationPermissionDeniedDialog(true)
                         }
                     } else {
-                        showReminderDatePicker = true
-                        reminderBaseDateMillis = uiState.dueDateTimestamp
+                        viewModel.setShowReminderDatePicker(true)
+                        viewModel.setReminderBaseDateMillis(uiState.dueDateTimestamp)
                     }
                 }) {
                     Text(stringResource(id = R.string.add_reminder))
                 }
 
                 uiState.reminders.sortedBy { it.reminderTime }.forEach { reminder ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Recordatorio: ${formatTimestamp(reminder.reminderTime)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Recordatorio: ${formatTimestamp(reminder.reminderTime)}", modifier = Modifier.weight(1f))
                         IconButton(onClick = { viewModel.removeReminder(reminder) }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.delete_reminder))
+                            Icon(Icons.Default.Close, contentDescription = null)
                         }
                     }
                 }
+
                 Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // botones de media block
+
+                // Botonera Inferior
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     Button(onClick = { viewModel.addMediaBlock(MediaType.TEXT, "Nuevo texto") }) {
-                        Icon(Icons.Filled.Description, contentDescription = stringResource(id = R.string.add_text))
+                        Icon(Icons.Filled.Description, contentDescription = null)
                     }
-                    Button(onClick = { showImageSheet = true }) {
-                        Icon(Icons.Filled.Image, contentDescription = stringResource(id = R.string.add_image_desc))
+                    Button(onClick = { viewModel.setShowImageSheet(true) }) { // VM
+                        Icon(Icons.Filled.Image, contentDescription = null)
                     }
                     Button(onClick = {
                         val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
                         if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-                            showAudioSheet = true
+                            viewModel.setShowAudioSheet(true) // VM
                         } else {
                             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
                     }) {
-                        Icon(Icons.Filled.Audiotrack, contentDescription = stringResource(id = R.string.add_audio))
+                        Icon(Icons.Filled.Audiotrack, contentDescription = null)
                     }
                     Button(onClick = { viewModel.setShowVideoSheet(true) }) {
-                        Icon(Icons.Filled.Videocam, contentDescription = stringResource(id = R.string.add_video))
+                        Icon(Icons.Filled.Videocam, contentDescription = null)
                     }
-
                 }
                 Spacer(Modifier.height(70.dp))
-
             }
 
-            if (showPermissionDeniedDialog) {
+            // --- DIÁLOGOS (Ahora controlados por uiState) ---
+
+            if (uiState.showNotificationPermissionDeniedDialog) {
                 AlertDialog(
-                    onDismissRequest = { showPermissionDeniedDialog = false },
+                    onDismissRequest = { viewModel.setShowNotificationPermissionDeniedDialog(false) },
                     title = { Text("Permiso requerido") },
-                    text = {
-                        Text("Necesitas permitir las notificaciones para crear recordatorios. Por favor, habilítalas en la configuración.")
-                    },
+                    text = { Text("Necesitas permitir las notificaciones para crear recordatorios.") },
                     confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showPermissionDeniedDialog = false
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.fromParts("package", context.packageName, null)
-                                }
-                                context.startActivity(intent)
+                        TextButton(onClick = {
+                            viewModel.setShowNotificationPermissionDeniedDialog(false)
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
                             }
-                        ) {
-                            Text("Ir a Configuración")
-                        }
+                            context.startActivity(intent)
+                        }) { Text("Ir a Configuración") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPermissionDeniedDialog = false }) {
-                            Text(stringResource(id = R.string.cancel))
-                        }
+                        TextButton(onClick = { viewModel.setShowNotificationPermissionDeniedDialog(false) }) { Text("Cancelar") }
                     }
                 )
             }
 
-            if (showBlockMediaDeleteDialog) {
+            if (uiState.showBlockMediaDeleteDialog) {
                 AlertDialog(
-                    onDismissRequest = { showBlockMediaDeleteDialog = false },
+                    onDismissRequest = { viewModel.setShowBlockMediaDeleteDialog(false) },
                     title = { Text(stringResource(id = R.string.delete_item)) },
                     text = { Text(stringResource(id = R.string.confirm_delete_content)) },
                     confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.removeMediaBlock(blockToDelete!!.id)
-                                showBlockMediaDeleteDialog = false
-                            }
-                        ) {
-                            Text(stringResource(id = R.string.delete), color = MaterialTheme.colorScheme.error)
-                        }
+                        TextButton(onClick = {
+                            uiState.blockToDelete?.let { viewModel.removeMediaBlock(it.id) }
+                            viewModel.setShowBlockMediaDeleteDialog(false)
+                        }) { Text(stringResource(id = R.string.delete), color = MaterialTheme.colorScheme.error) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showBlockMediaDeleteDialog = false }) {
-                            Text(stringResource(id = R.string.cancel))
-                        }
+                        TextButton(onClick = { viewModel.setShowBlockMediaDeleteDialog(false) }) { Text("Cancelar") }
                     }
                 )
             }
 
             if (uiState.showVideoPermissionDeniedDialog) {
                 AlertDialog(
-                    onDismissRequest = { viewModel.setShowVideoPermissionDenied(false) },
+                    onDismissRequest = { viewModel.setShowVideoPermissionDeniedDialog(false) },
                     title = { Text("Permiso requerido") },
-                    text = {
-                        Text("Necesitas permitir cámara y micrófono para grabar video.")
-                    },
+                    text = { Text("Necesitas permitir cámara y micrófono.") },
                     confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.setShowVideoPermissionDenied(false)
-                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.fromParts("package", context.packageName, null)
-                                }
-                                context.startActivity(intent)
-                            }
-                        ) {
-                            Text("Ir a Configuración")
-                        }
+                        TextButton(onClick = {
+                            viewModel.setShowVideoPermissionDeniedDialog(false)
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+                            context.startActivity(intent)
+                        }) { Text("Ir a Configuración") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { viewModel.setShowVideoPermissionDenied(false) }) {
-                            Text("Cancelar")
-                        }
+                        TextButton(onClick = { viewModel.setShowVideoPermissionDeniedDialog(false) }) { Text("Cancelar") }
                     }
                 )
             }
 
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .imePadding()
-            ) {
-                // boton de salir o eliminar
+            Box(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(id = R.string.exit),
+                    contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
                         .size(48.dp)
                         .combinedClickable(
                             onClick = { navController.popBackStack() },
-                            onLongClick = { showDeleteDialog = true }
+                            onLongClick = { viewModel.setShowDeleteDialog(true) } // VM
                         )
                         .background(Color.Transparent, shape = CircleShape)
                         .padding(8.dp)
                 )
 
-                if (showDeleteDialog) {
+                if (uiState.showDeleteDialog) {
                     AlertDialog(
-                        onDismissRequest = { showDeleteDialog = false },
+                        onDismissRequest = { viewModel.setShowDeleteDialog(false) },
                         title = { Text(stringResource(id = R.string.delete_note)) },
                         text = { Text(stringResource(id = R.string.confirm_delete_note)) },
                         confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    viewModel.deleteNoteWithDetails(noteId)
-                                    showDeleteDialog = false
-                                    navController.popBackStack()
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.delete), color = MaterialTheme.colorScheme.error)
-                            }
+                            TextButton(onClick = {
+                                viewModel.deleteNoteWithDetails(noteId)
+                                viewModel.setShowDeleteDialog(false)
+                                navController.popBackStack()
+                            }) { Text(stringResource(id = R.string.delete), color = MaterialTheme.colorScheme.error) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showDeleteDialog = false }) {
-                                Text(stringResource(id = R.string.cancel))
-                            }
+                            TextButton(onClick = { viewModel.setShowDeleteDialog(false) }) { Text("Cancelar") }
                         }
                     )
                 }
 
-                // boton de guardar
                 IconButton(
                     onClick = {
                         viewModel.saveNote(isEditing = noteId != -1, noteId = noteId)
                         navController.popBackStack()
                     },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = stringResource(id = R.string.save_note))
+                    Icon(Icons.Default.Save, contentDescription = null)
                 }
             }
-
         }
-
     }
+
+    // --- PICKERS Y SHEETS EXTERNOS ---
 
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState()
         DatePickerDialog(
             onDismissRequest = { viewModel.setShowDatePicker(false) },
             confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(onClick = { viewModel.setShowDatePicker(false) }) {
-                        Text(stringResource(id = R.string.cancel))
-                    }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = { viewModel.setShowDatePicker(false) }) { Text("Cancelar") }
                     TextButton(onClick = {
                         datePickerState.selectedDateMillis?.let { dateMillis ->
-                            val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
-                            utcCalendar.timeInMillis = dateMillis
-
-                            val localCalendar = Calendar.getInstance()
-                            localCalendar.set(
-                                utcCalendar.get(Calendar.YEAR),
-                                utcCalendar.get(Calendar.MONTH),
-                                utcCalendar.get(Calendar.DAY_OF_MONTH),
-                                0, 0, 0
-                            )
-                            localCalendar.set(Calendar.MILLISECOND, 0)
-
+                            val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply { timeInMillis = dateMillis }
+                            val localCalendar = Calendar.getInstance().apply {
+                                set(utcCalendar.get(Calendar.YEAR), utcCalendar.get(Calendar.MONTH), utcCalendar.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
                             viewModel.onDueDateChange(localCalendar.timeInMillis)
                             viewModel.setShowDatePicker(false)
-                            showTimePicker = true
+                            viewModel.setShowTimePicker(true) // VM
                         }
-                    }) {
-                        Text(stringResource(id = R.string.next))
-                    }
+                    }) { Text("Siguiente") }
                 }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
-    if (showReminderDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dueDateTimestamp
-        )
+    if (uiState.showReminderDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = uiState.dueDateTimestamp)
         DatePickerDialog(
-            onDismissRequest = { showReminderDatePicker = false },
+            onDismissRequest = { viewModel.setShowReminderDatePicker(false) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { dateMillis ->
-                        // --- CORRECCIÓN DE ZONA HORARIA ---
-                        val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
-                        utcCalendar.timeInMillis = dateMillis
-
-                        val localCalendar = Calendar.getInstance()
-                        localCalendar.set(
-                            utcCalendar.get(Calendar.YEAR),
-                            utcCalendar.get(Calendar.MONTH),
-                            utcCalendar.get(Calendar.DAY_OF_MONTH),
-                            0, 0, 0
-                        )
-                        localCalendar.set(Calendar.MILLISECOND, 0)
-
-                        reminderBaseDateMillis = localCalendar.timeInMillis
-                        showReminderDatePicker = false
-                        showTimePicker = true
+                        val utcCalendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply { timeInMillis = dateMillis }
+                        val localCalendar = Calendar.getInstance().apply {
+                            set(utcCalendar.get(Calendar.YEAR), utcCalendar.get(Calendar.MONTH), utcCalendar.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        viewModel.setReminderBaseDateMillis(localCalendar.timeInMillis)
+                        viewModel.setShowReminderDatePicker(false)
+                        viewModel.setShowTimePicker(true)
                     }
-                }) { Text(stringResource(id = R.string.next)) }
+                }) { Text("Siguiente") }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
-    if (showTimePicker) {
+    if (uiState.showTimePicker) {
         val timePickerState = rememberTimePickerState()
-
-        val baseDateTimestamp = reminderBaseDateMillis ?: uiState.dueDateTimestamp ?:
-                Calendar.getInstance().timeInMillis
+        val baseDateTimestamp = uiState.reminderBaseDateMillis ?: uiState.dueDateTimestamp ?: Calendar.getInstance().timeInMillis
 
         TimePickerDialog(
             onDismissRequest = {
-                showTimePicker = false
-                reminderBaseDateMillis = null // Limpiar el estado al cerrar
+                viewModel.setShowTimePicker(false)
+                viewModel.setReminderBaseDateMillis(null)
             },
             title = { Text("Selecciona la hora") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val combinedTimestamp = combineDateWithTime(
-                            baseDateTimestamp,
-                            timePickerState.hour,
-                            timePickerState.minute
-                        )
-
-                        if (reminderBaseDateMillis != null) {
-                            viewModel.addReminder(combinedTimestamp)
-                        } else {
-                            viewModel.onDueDateChange(combinedTimestamp)
-                        }
-
-                        showTimePicker = false
-                        reminderBaseDateMillis = null // Limpiar el estado
+                TextButton(onClick = {
+                    val combinedTimestamp = combineDateWithTime(baseDateTimestamp, timePickerState.hour, timePickerState.minute)
+                    if (uiState.reminderBaseDateMillis != null) {
+                        viewModel.addReminder(combinedTimestamp)
+                    } else {
+                        viewModel.onDueDateChange(combinedTimestamp)
                     }
-                ) { Text(stringResource(id = R.string.accept)) }
+                    viewModel.setShowTimePicker(false)
+                    viewModel.setReminderBaseDateMillis(null)
+                }) { Text("Aceptar") }
             }
-        ) {
-            TimePicker(state = timePickerState)
-        }
-    }
-    @Composable
-    fun TimePickerDialog(
-        onDismissRequest: () -> Unit,
-        confirmButton: @Composable (() -> Unit),
-        content: @Composable () -> Unit,
-    ) {
-        Dialog(onDismissRequest = onDismissRequest) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 6.dp,
-                modifier = Modifier
-                    .width(IntrinsicSize.Min)
-                    .background(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.surface
-                    ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    content()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        confirmButton()
-                    }
-                }
-            }
-        }
+        ) { TimePicker(state = timePickerState) }
     }
 
-    if (showFullImage && fullImageUri != null) {
+    if (uiState.showFullImage && uiState.fullImageUri != null) {
         FullScreenImageViewer(
-            imageUri = fullImageUri!!,
-            onClose = { showFullImage = false },
+            imageUri = uiState.fullImageUri!!,
+            onClose = { viewModel.setShowFullImage(false) },
         )
     }
-    val pickVideoLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocument()
-        ) { uri ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(
-                        it,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                } catch (e: SecurityException) {
-                    e.printStackTrace()
-                }
 
-                viewModel.onVideoSelected(context, it)
-            }
+    val pickVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            try { context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {}
+            viewModel.onVideoSelected(context, it)
         }
-
-
+    }
 
     if (uiState.showVideoSheet) {
         VideoPickerSheet(
             onTakeVideo = {
                 val perms = requiredVideoPermissions()
-                val granted = perms.all {
-                    ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-                }
-
-                Log.d("PERMISSION1", "UI va a lanzar la cámara")
-
+                val granted = perms.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
                 if (!granted) {
                     permissionsLauncher.launch(perms)
                 } else {
                     val uri = viewModel.prepareVideoUri(context)
                     if (uri != null) {
                         viewModel.setPendingVideoUri(uri)
-                        Log.d("PERMISSION1", "UI lanza cámara con URI = $uri")
                         takeVideoLauncher.launch(uri)
                     }
                 }
@@ -944,45 +628,19 @@ fun AddEditScreen(
             onDismiss = { viewModel.setShowVideoSheet(false) }
         )
     }
-    if (showAudioSheet) {
+
+    if (uiState.showAudioSheet) {
         AudioRecorderSheet(
-            onDismiss = { showAudioSheet = false },
+            onDismiss = { viewModel.setShowAudioSheet(false) },
             onFileReady = { uri ->
                 viewModel.addMediaBlock(MediaType.AUDIO, uri.toString())
-                showAudioSheet = false
+                viewModel.setShowAudioSheet(false)
             }
         )
     }
-
-    if (uiState.showVideoPermissionDeniedDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.setShowVideoPermissionDeniedDialog(false) },
-            title = { Text("Permiso requerido") },
-            text = { Text("Necesitas permitir el acceso a la cámara para grabar video.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.setShowVideoPermissionDeniedDialog(false)
-                        val intent = Intent(
-                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.fromParts("package", context.packageName, null)
-                        )
-                        context.startActivity(intent)
-                    }
-                ) { Text("Ir a Configuración") }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.setShowVideoPermissionDeniedDialog(false) }) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
-
 
     LaunchedEffect(uiState.requestVideoPermission) {
         if (uiState.requestVideoPermission) {
-            Log.d("PERMISSION1", "UI va a lanzar la cámara")
             permissionsLauncher.launch(requiredVideoPermissions())
         }
     }
@@ -994,7 +652,6 @@ fun requiredVideoPermissions(): Array<String> {
         android.Manifest.permission.RECORD_AUDIO
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
