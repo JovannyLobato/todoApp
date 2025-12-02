@@ -35,7 +35,8 @@ class BootReceiver : BroadcastReceiver() {
                             val note = noteDao.getNoteWithDetails(reminder.noteId)?.note
                             val title = note?.title?.ifEmpty { "Tarea pendiente" } ?: "Recordatorio"
 
-                            // Reprogramamos usando tu AlarmScheduler existente
+                            //
+                            // Reprogramming usando tu AlarmScheduler existente
                             AlarmScheduler.scheduleReminder(context, reminder, title)
                         }
                     }

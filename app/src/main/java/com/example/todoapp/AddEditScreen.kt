@@ -158,12 +158,27 @@ fun AddEditScreen(
         viewModel.setTempPhotoUri(null) // Limpiamos en ViewModel
     }
 
+
+
+
     // Función auxiliar que ahora usa el ViewModel
     fun launchCamera() {
         val uri = viewModel.prepareImageUri(context) // Nueva función en VM
         viewModel.setTempPhotoUri(uri)
         if (uri != null) {
             takePictureLauncher.launch(uri)
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Si el usuario dice SÍ, lanzamos la cámara inmediatamente
+            launchCamera()
+        } else {
+            // Si dice NO, podrías mostrar un mensaje o simplemente no hacer nada
+            // (Opcional) viewModel.setShowCameraPermissionDeniedDialog(true)
         }
     }
 
@@ -226,7 +241,13 @@ fun AddEditScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = {
-                            launchCamera()
+                            val permission = Manifest.permission.CAMERA
+
+                            if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+                                launchCamera()
+                            } else {
+                                cameraPermissionLauncher.launch(permission)
+                            }
                             viewModel.setShowImageSheet(false)
                         },
                         modifier = Modifier.fillMaxWidth()
