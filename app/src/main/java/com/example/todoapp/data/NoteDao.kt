@@ -30,7 +30,7 @@ interface NoteDao {
     suspend fun deleteRemindersByNoteId(noteId: Int)
 
     @Transaction
-    @Query("SELECT * FROM notes")
+    @Query("SELECT * FROM notes ORDER BY id DESC")
     fun getAllNotesWithDetails(): Flow<List<NoteWithDetails>>
 
     @Transaction

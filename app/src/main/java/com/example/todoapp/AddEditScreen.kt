@@ -110,6 +110,13 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.text.TextStyle as textstyle
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material3.LinearProgressIndicator
 
 
 fun combineDateWithTime(dateTimestamp: Long, hour: Int, minute: Int): Long {
@@ -168,6 +175,7 @@ fun AddEditScreen(
     var fullImageUri by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
     var showVideoSheet by remember { mutableStateOf(false) }
+    var showAudioSheet by remember { mutableStateOf(false) }
 
 
     val takeVideoLauncher =
@@ -197,10 +205,13 @@ fun AddEditScreen(
             }
         }
 
-
-
-
-
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showAudioSheet = true
+        }
+    }
 
     var showImageSheet by remember { mutableStateOf(false) }
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
@@ -410,8 +421,9 @@ fun AddEditScreen(
                                     }
 
                                     MediaType.AUDIO -> {
-                                        Text(stringResource(id = R.string.add_audio) + ": ${block.content ?: stringResource(id = R.string.add_audio)}")
-                                        // Luego aquí agregamos exoplayer de audio si quieres
+                                        block.content?.let { uriString ->
+                                            AudioPlayerBlock(uriString = uriString)
+                                        } ?: Text("Error al cargar audio")
                                     }
 
                                     MediaType.VIDEO -> {
@@ -572,7 +584,14 @@ fun AddEditScreen(
                     Button(onClick = { showImageSheet = true }) {
                         Icon(Icons.Filled.Image, contentDescription = stringResource(id = R.string.add_image_desc))
                     }
-                    Button(onClick = {  }) {
+                    Button(onClick = {
+                        val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                            showAudioSheet = true
+                        } else {
+                            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }) {
                         Icon(Icons.Filled.Audiotrack, contentDescription = stringResource(id = R.string.add_audio))
                     }
                     Button(onClick = { viewModel.setShowVideoSheet(true) }) {
@@ -925,6 +944,15 @@ fun AddEditScreen(
             onDismiss = { viewModel.setShowVideoSheet(false) }
         )
     }
+    if (showAudioSheet) {
+        AudioRecorderSheet(
+            onDismiss = { showAudioSheet = false },
+            onFileReady = { uri ->
+                viewModel.addMediaBlock(MediaType.AUDIO, uri.toString())
+                showAudioSheet = false
+            }
+        )
+    }
 
     if (uiState.showVideoPermissionDeniedDialog) {
         AlertDialog(
@@ -1017,7 +1045,6 @@ fun VideoPickerSheet(
 }
 
 
-
 @Composable
 fun FullScreenImageViewer(
     imageUri: String,
@@ -1065,5 +1092,168 @@ fun FullScreenImageViewer(
                 .size(35.dp)
                 .clickable { onClose() }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AudioRecorderSheet(
+    onDismiss: () -> Unit,
+    onFileReady: (Uri) -> Unit
+) {
+    val context = LocalContext.current
+    var isRecording by remember { mutableStateOf(false) }
+    var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var outputFile by remember { mutableStateOf<File?>(null) }
+
+    // Limpiar recorder al cerrar
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                if (isRecording) {
+                    recorder?.stop()
+                }
+                recorder?.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = if (isRecording) "Grabando..." else "Toque el micrófono para grabar",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (isRecording) {
+                // Botón de STOP
+                Button(
+                    onClick = {
+                        try {
+                            recorder?.stop()
+                            recorder?.release()
+                            recorder = null
+                            isRecording = false
+                            outputFile?.let { file ->
+                                val uri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.provider",
+                                    file
+                                )
+                                onFileReady(uri)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            isRecording = false
+                        }
+                    },
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = "Detener", modifier = Modifier.size(40.dp))
+                }
+            } else {
+                // Botón de GRABAR
+                Button(
+                    onClick = {
+                        val file = File(context.cacheDir, "audio_${System.currentTimeMillis()}.mp4")
+                        outputFile = file
+
+                        // Configuración del MediaRecorder
+                        val newRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            MediaRecorder(context)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            MediaRecorder()
+                        }
+
+                        newRecorder.apply {
+                            setAudioSource(MediaRecorder.AudioSource.MIC)
+                            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                            setOutputFile(file.absolutePath)
+                            try {
+                                prepare()
+                                start()
+                                isRecording = true
+                                recorder = newRecorder
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.Mic, contentDescription = "Grabar", modifier = Modifier.size(40.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun AudioPlayerBlock(uriString: String) {
+    val context = LocalContext.current
+    var isPlaying by remember { mutableStateOf(false) }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    DisposableEffect(uriString) {
+        onDispose {
+            mediaPlayer?.release()
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    if (isPlaying) {
+                        mediaPlayer?.pause()
+                        isPlaying = false
+                    } else {
+                        if (mediaPlayer == null) {
+                            mediaPlayer = MediaPlayer().apply {
+                                setDataSource(context, Uri.parse(uriString))
+                                prepare()
+                                setOnCompletionListener {
+                                    isPlaying = false
+                                }
+                            }
+                        }
+                        mediaPlayer?.start()
+                        isPlaying = true
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pausar" else "Reproducir"
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Nota de voz", style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
