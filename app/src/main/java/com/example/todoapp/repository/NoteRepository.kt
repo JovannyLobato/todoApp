@@ -60,7 +60,7 @@ class NoteRepository(
     ) {
         val noteId = note.id ?: return
 
-        // 1. Cancelar alarmas viejas antes de limpiar la BD
+        // Cancelar alarmas viejas antes de limpiar la BD
         // Obtenemos la versión actual de la base de datos para saber qué alarmas cancelar
         val oldData = noteDao.getNoteWithDetails(noteId)
         oldData?.reminders?.forEach { oldReminder ->

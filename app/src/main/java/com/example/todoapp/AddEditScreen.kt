@@ -405,8 +405,20 @@ fun AddEditScreen(
                 uiState.reminders.sortedBy { it.reminderTime }.forEach { reminder ->
                     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "Recordatorio: ${formatTimestamp(reminder.reminderTime)}", modifier = Modifier.weight(1f))
+                        IconButton(onClick = {
+                            // Guardar recortotorio que se esta editando
+                            viewModel.setReminderToEdit(reminder)
+                            // Establecer la fecha base con la hora actual del recordatorio
+                            viewModel.setReminderBaseDateMillis(reminder.reminderTime)
+                            // Abrir el calendario
+                            viewModel.setShowReminderDatePicker(true)
+                        }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar")
+                        }
+
+                        // Eliminar recordatorio
                         IconButton(onClick = { viewModel.removeReminder(reminder) }) {
-                            Icon(Icons.Default.Close, contentDescription = null)
+                            Icon(Icons.Default.Close, contentDescription = "Eliminar")
                         }
                     }
                 }
@@ -424,7 +436,7 @@ fun AddEditScreen(
                     Button(onClick = {
                         val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
                         if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-                            viewModel.setShowAudioSheet(true) // VM
+                            viewModel.setShowAudioSheet(true)
                         } else {
                             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
@@ -570,7 +582,8 @@ fun AddEditScreen(
 
     @OptIn(ExperimentalMaterial3Api::class)
     if (uiState.showReminderDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = uiState.dueDateTimestamp)
+        val initialDate = uiState.reminderToEdit?.reminderTime ?: uiState.dueDateTimestamp
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDate)
         DatePickerDialog(
             onDismissRequest = { viewModel.setShowReminderDatePicker(false) },
             confirmButton = {
@@ -593,24 +606,34 @@ fun AddEditScreen(
     @OptIn(ExperimentalMaterial3Api::class)
     if (uiState.showTimePicker) {
         val timePickerState = rememberTimePickerState()
+        val initialTime = uiState.reminderToEdit?.reminderTime ?: uiState.reminderBaseDateMillis ?: uiState.dueDateTimestamp ?: Calendar.getInstance().timeInMillis
         val baseDateTimestamp = uiState.reminderBaseDateMillis ?: uiState.dueDateTimestamp ?: Calendar.getInstance().timeInMillis
-
         TimePickerDialog(
             onDismissRequest = {
                 viewModel.setShowTimePicker(false)
                 viewModel.setReminderBaseDateMillis(null)
+                viewModel.setReminderToEdit(null)
             },
             title = { Text("Selecciona la hora") },
             confirmButton = {
                 TextButton(onClick = {
                     val combinedTimestamp = combineDateWithTime(baseDateTimestamp, timePickerState.hour, timePickerState.minute)
-                    if (uiState.reminderBaseDateMillis != null) {
+                    // LÓGICA DE GUARDADO
+                    if (uiState.reminderToEdit != null) {
+                        // EDITAR EXISTENTE
+                        viewModel.updateReminder(uiState.reminderToEdit!!, combinedTimestamp)
+                    } else if (uiState.reminderBaseDateMillis != null) {
+                        // AGREGAR NUEVO
                         viewModel.addReminder(combinedTimestamp)
                     } else {
+                        // FECHA DE TAREA
                         viewModel.onDueDateChange(combinedTimestamp)
                     }
+
+                    // Limpieza final
                     viewModel.setShowTimePicker(false)
                     viewModel.setReminderBaseDateMillis(null)
+                    viewModel.setReminderToEdit(null)
                 }) { Text("Aceptar") }
             }
         ) { TimePicker(state = timePickerState) }

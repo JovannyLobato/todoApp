@@ -1,5 +1,6 @@
-package com.example.todoapp.util // O el paquete que estés usando
+package com.example.todoapp.util
 
+import android.R.attr.data
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -56,7 +57,9 @@ object AlarmScheduler {
     fun cancelReminder(context: Context, reminderId: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            data = android.net.Uri.parse("content://receiver/$reminderId")
+        }
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,

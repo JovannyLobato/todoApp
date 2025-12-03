@@ -45,6 +45,7 @@ data class AddEditUiState(
     // Lógica interna de video
     val requestVideoPermission: Boolean = false,
     val videoUri: Uri? = null,
+    val reminderToEdit: Reminder? = null
 )
 
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
@@ -242,4 +243,23 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     // Flow para la lista principal
     val allNotes: StateFlow<List<NoteWithDetails>> = repository.getAllNotes()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
+
+    // Seleccionar recordatorio a editar
+    fun setReminderToEdit(reminder: Reminder?) {
+        _uiState.update { it.copy(reminderToEdit = reminder) }
+    }
+
+    // Guardar los cambios del recordatorio
+    fun updateReminder(oldReminder: Reminder, newTime: Long) {
+        _uiState.update { state ->
+            val updatedReminders = state.reminders.map {
+                // Si es el recordatorio viejo, creamos una copia con la nueva hora
+                if (it == oldReminder) it.copy(reminderTime = newTime) else it
+            }
+            // Guardamos la lista actualizada y limpiamos la variable de edición
+            state.copy(reminders = updatedReminders, reminderToEdit = null)
+        }
+    }
 }
