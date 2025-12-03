@@ -45,7 +45,8 @@ data class AddEditUiState(
     // Lógica interna de video
     val requestVideoPermission: Boolean = false,
     val videoUri: Uri? = null,
-    val reminderToEdit: Reminder? = null
+    val reminderToEdit: Reminder? = null,
+    val showAudioPermissionDeniedDialog: Boolean = false
 )
 
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
@@ -261,5 +262,9 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             // Guardamos la lista actualizada y limpiamos la variable de edición
             state.copy(reminders = updatedReminders, reminderToEdit = null)
         }
+    }
+
+    fun setShowAudioPermissionDeniedDialog(show: Boolean) {
+        _uiState.update { it.copy(showAudioPermissionDeniedDialog = show) }
     }
 }

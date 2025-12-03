@@ -133,6 +133,8 @@ fun AddEditScreen(
     ) { isGranted ->
         if (isGranted) {
             viewModel.setShowAudioSheet(true) // Usamos ViewModel
+        }else {
+            viewModel.setShowAudioPermissionDeniedDialog(true)
         }
     }
 
@@ -450,7 +452,6 @@ fun AddEditScreen(
                 Spacer(Modifier.height(70.dp))
             }
 
-            // --- DIÁLOGOS (Ahora controlados por uiState) ---
 
             if (uiState.showNotificationPermissionDeniedDialog) {
                 AlertDialog(
@@ -485,6 +486,29 @@ fun AddEditScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { viewModel.setShowBlockMediaDeleteDialog(false) }) { Text("Cancelar") }
+                    }
+                )
+            }
+
+            if (uiState.showAudioPermissionDeniedDialog) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.setShowAudioPermissionDeniedDialog(false) },
+                    title = { Text("Permiso requerido") },
+                    text = { Text("Necesitas permitir el micrófono para grabar notas de voz.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.setShowAudioPermissionDeniedDialog(false)
+                            val intent = Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null)
+                            )
+                            context.startActivity(intent)
+                        }) { Text("Ir a Configuración") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.setShowAudioPermissionDeniedDialog(false) }) {
+                            Text("Cancelar")
+                        }
                     }
                 )
             }
@@ -554,7 +578,6 @@ fun AddEditScreen(
         }
     }
 
-    // --- PICKERS Y SHEETS EXTERNOS ---
 
     if (uiState.showDatePicker) {
         val datePickerState = rememberDatePickerState()

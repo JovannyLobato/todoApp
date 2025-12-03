@@ -14,12 +14,11 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
 
-            // Usamos goAsync porque vamos a acceder a la base de datos (operación lenta)
             val pendingResult = goAsync()
 
             // Accedemos a la aplicación para obtener la base de datos
             val app = context.applicationContext as TodoApplication
-            val noteDao = app.database.noteDao() // Acceso directo al DAO
+            val noteDao = app.database.noteDao()
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -27,7 +26,7 @@ class BootReceiver : BroadcastReceiver() {
                     val reminders = noteDao.getAllReminders()
                     val now = System.currentTimeMillis()
 
-                    // 2. Recorremos y reprogramamos SOLO los que son a futuro
+                    // Recorremos y reprogramamos SOLO los que son a futuro
                     reminders.forEach { reminder ->
                         if (reminder.reminderTime > now) {
                             // Necesitamos el título de la nota para la notificación.
@@ -35,7 +34,6 @@ class BootReceiver : BroadcastReceiver() {
                             val note = noteDao.getNoteWithDetails(reminder.noteId)?.note
                             val title = note?.title?.ifEmpty { "Tarea pendiente" } ?: "Recordatorio"
 
-                            //
                             // Reprogramming usando tu AlarmScheduler existente
                             AlarmScheduler.scheduleReminder(context, reminder, title)
                         }

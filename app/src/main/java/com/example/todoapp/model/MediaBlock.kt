@@ -16,7 +16,7 @@ data class MediaBlock(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val noteId: Int,
     val type: com.example.todoapp.model.MediaType,
-    val content: String?, // texto o URI de media
+    val content: String?,
     val description: String?,
-    val order: Int // orden dentro de la nota
+    val order: Int
 )

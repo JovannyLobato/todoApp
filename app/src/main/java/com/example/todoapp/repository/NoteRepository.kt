@@ -24,21 +24,20 @@ class NoteRepository(
         media: List<MediaBlock>,
         reminders: List<Reminder>
     ) {
-        // 1. Insertar nota y obtener ID
+        // Insertar nota y obtener ID
         val noteId = noteDao.insertNote(note).toInt()
 
-        // 2. Asignar el ID de la nota a los hijos
+        // Asignar el ID de la nota a los hijos
         val mediaWithNoteId = media.map { it.copy(noteId = noteId) }
         val remindersWithNoteId = reminders.map { it.copy(noteId = noteId) }
 
-        // 3. Insertar bloques multimedia
+        // Insertar bloques multimedia
         noteDao.insertMediaBlocks(mediaWithNoteId)
 
-        // 4. Insertar recordatorios y CAPTURAR los IDs generados
-        // IMPORTANTE: Tu DAO (insertReminders) debe devolver List<Long>
+        // Insertar recordatorios y CAPTURAR los IDs generados
         val insertedReminderIds = noteDao.insertReminders(remindersWithNoteId)
 
-        // 5. Programar alarmas usando los IDs reales de la base de datos
+        // Programar alarmas usando los IDs reales de la base de datos
         val noteTitle = note.title.ifEmpty { "Nueva Nota/Tarea" }
 
         insertedReminderIds.zip(remindersWithNoteId) { id, reminder ->
@@ -52,7 +51,6 @@ class NoteRepository(
         }
     }
 
-    // === ACTUALIZAR nota con sus detalles ===
     suspend fun updateNoteWithDetails(
         note: Note,
         media: List<MediaBlock>,
@@ -96,7 +94,6 @@ class NoteRepository(
         }
     }
 
-    // === ELIMINAR nota ===
     suspend fun deleteNote(note: Note) {
 
         noteDao.deleteNote(note)
@@ -109,7 +106,6 @@ class NoteRepository(
             AlarmScheduler.cancelReminder(applicationContext, oldReminder.id)
         }
 
-        // 2. Borrar de la BD
         noteDao.deleteNoteCompletely(noteId)
     }
 
